@@ -1,0 +1,31 @@
+{
+  "pong": {
+    "target": "esp32s3-wroom",
+    "channels": 4,
+    "classes": 10,
+    "engine": "cnn1d_int8",
+    "adc_scale": 3276.7
+  },
+  "results": [
+    {
+      "engine": "micro_lda_q7",
+      "windows": 20,
+      "parity_matches": 20,
+      "parity_ratio": 1.0,
+      "mean_us_c1": 329.71,
+      "max_us_c1": 360.82,
+      "min_stack_c0_free": 2496,
+      "min_stack_c1_free": 3332
+    },
+    {
+      "engine": "cnn1d_int8",
+      "windows": 20,
+      "parity_matches": 20,
+      "parity_ratio": 1.0,
+      "mean_us_c1": 6563.4635,
+      "max_us_c1": 6600.09,
+      "min_stack_c0_free": 2496,
+      "min_stack_c1_free": 3332
+    }
+  ]
+}

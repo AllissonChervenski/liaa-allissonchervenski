@@ -1,0 +1,741 @@
+{
+  "benchmark": "Hierarchical Coarse-to-Fine Pipeline (M11)",
+  "timestamp": "2026-11-17 04:45:26 -0300",
+  "confidence_threshold": 0.8,
+  "fallback_policy": "Option A (Fine Specialist CNN validation on low confidence)",
+  "datasets": {
+    "ozdemir": {
+      "subject": "S1",
+      "num_classes": 10,
+      "scenarios": [
+        {
+          "num_channels": 4,
+          "precision": "float32",
+          "M01_micro_lda_q7": {
+            "acc": 82.3076923076923,
+            "bal_acc": 82.3076923076923,
+            "f1": 82.64430776224143
+          },
+          "M02_cnn1d_int8": {
+            "acc": 81.7948717948718,
+            "bal_acc": 81.7948717948718,
+            "f1": 81.17909395894233
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 82.6923076923077,
+            "bal_acc": 82.6923076923077,
+            "f1": 82.26965010273582,
+            "ee_ratio": 78.2051282051282
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 61.58,
+            "balanced_accuracy_pct": 61.58,
+            "macro_f1_pct": 57.67,
+            "fast_path_ratio_pct": 44.0,
+            "deep_path_ratio_pct": 56.0,
+            "macro_accuracy_pct": 76.84,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 23577.02564102564,
+            "latency_ms": 0.09823760683760684,
+            "energy_mj": 0.014588284615384615,
+            "sram_kb": 12.42578125,
+            "flash_kb": 4.63671875,
+            "irc": 6268.6,
+            "iee": 38574.3
+          }
+        },
+        {
+          "num_channels": 4,
+          "precision": "float16",
+          "M01_micro_lda_q7": {
+            "acc": 82.35042735042735,
+            "bal_acc": 82.35042735042735,
+            "f1": 82.68290911083115
+          },
+          "M02_cnn1d_int8": {
+            "acc": 81.7094017094017,
+            "bal_acc": 81.7094017094017,
+            "f1": 81.10173241352416
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 82.64957264957265,
+            "bal_acc": 82.64957264957265,
+            "f1": 82.21015399819859,
+            "ee_ratio": 77.94871794871796
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 61.5,
+            "balanced_accuracy_pct": 61.5,
+            "macro_f1_pct": 57.64,
+            "fast_path_ratio_pct": 43.9,
+            "deep_path_ratio_pct": 56.1,
+            "macro_accuracy_pct": 76.84,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 23594.735042735043,
+            "latency_ms": 0.09831139601139602,
+            "energy_mj": 0.014599242307692308,
+            "sram_kb": 12.42578125,
+            "flash_kb": 4.63671875,
+            "irc": 6255.2,
+            "iee": 38491.85
+          }
+        },
+        {
+          "num_channels": 4,
+          "precision": "int32",
+          "M01_micro_lda_q7": {
+            "acc": 82.3076923076923,
+            "bal_acc": 82.3076923076923,
+            "f1": 82.64430776224143
+          },
+          "M02_cnn1d_int8": {
+            "acc": 81.7948717948718,
+            "bal_acc": 81.7948717948718,
+            "f1": 81.17909395894233
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 82.6923076923077,
+            "bal_acc": 82.6923076923077,
+            "f1": 82.26965010273582,
+            "ee_ratio": 78.2051282051282
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 61.58,
+            "balanced_accuracy_pct": 61.58,
+            "macro_f1_pct": 57.67,
+            "fast_path_ratio_pct": 44.0,
+            "deep_path_ratio_pct": 56.0,
+            "macro_accuracy_pct": 76.88,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 23577.02564102564,
+            "latency_ms": 0.09823760683760684,
+            "energy_mj": 0.014588284615384615,
+            "sram_kb": 12.42578125,
+            "flash_kb": 4.63671875,
+            "irc": 6268.6,
+            "iee": 38574.3
+          }
+        },
+        {
+          "num_channels": 4,
+          "precision": "int16",
+          "M01_micro_lda_q7": {
+            "acc": 81.96581196581197,
+            "bal_acc": 81.96581196581197,
+            "f1": 82.27572948923412
+          },
+          "M02_cnn1d_int8": {
+            "acc": 81.7094017094017,
+            "bal_acc": 81.7094017094017,
+            "f1": 81.15698696977717
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 82.26495726495726,
+            "bal_acc": 82.26495726495726,
+            "f1": 81.84093289096857,
+            "ee_ratio": 77.13675213675214
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 61.24,
+            "balanced_accuracy_pct": 61.24,
+            "macro_f1_pct": 57.19,
+            "fast_path_ratio_pct": 43.7,
+            "deep_path_ratio_pct": 56.3,
+            "macro_accuracy_pct": 76.84,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 23700.991452991453,
+            "latency_ms": 0.09875413105413106,
+            "energy_mj": 0.01466498846153846,
+            "sram_kb": 12.42578125,
+            "flash_kb": 4.63671875,
+            "irc": 6201.19,
+            "iee": 38159.51
+          }
+        },
+        {
+          "num_channels": 4,
+          "precision": "int8",
+          "M01_micro_lda_q7": {
+            "acc": 76.49572649572649,
+            "bal_acc": 76.49572649572649,
+            "f1": 76.48762821386808
+          },
+          "M02_cnn1d_int8": {
+            "acc": 35.04273504273504,
+            "bal_acc": 35.04273504273504,
+            "f1": 29.225517877397927
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 64.23076923076924,
+            "bal_acc": 64.23076923076924,
+            "f1": 63.661462835586825,
+            "ee_ratio": 55.34188034188035
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 48.63,
+            "balanced_accuracy_pct": 48.63,
+            "macro_f1_pct": 45.78,
+            "fast_path_ratio_pct": 42.5,
+            "deep_path_ratio_pct": 57.5,
+            "macro_accuracy_pct": 69.36,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 24196.8547008547,
+            "latency_ms": 0.10082022792022792,
+            "energy_mj": 0.014971803846153845,
+            "sram_kb": 12.42578125,
+            "flash_kb": 4.63671875,
+            "irc": 4823.68,
+            "iee": 29682.91
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "float32",
+          "M01_micro_lda_q7": {
+            "acc": 63.418803418803414,
+            "bal_acc": 63.418803418803414,
+            "f1": 62.22106745829521
+          },
+          "M02_cnn1d_int8": {
+            "acc": 63.8034188034188,
+            "bal_acc": 63.80341880341881,
+            "f1": 62.72348853964913
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 63.931623931623925,
+            "bal_acc": 63.93162393162394,
+            "f1": 62.87105792872389,
+            "ee_ratio": 47.69230769230769
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 35.17,
+            "balanced_accuracy_pct": 35.17,
+            "macro_f1_pct": 27.65,
+            "fast_path_ratio_pct": 18.0,
+            "deep_path_ratio_pct": 82.0,
+            "macro_accuracy_pct": 60.64,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 27441.23076923077,
+            "latency_ms": 0.11433846153846154,
+            "energy_mj": 0.016979261538461538,
+            "sram_kb": 9.19921875,
+            "flash_kb": 4.291015625,
+            "irc": 3076.04,
+            "iee": 21493.16
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "float16",
+          "M01_micro_lda_q7": {
+            "acc": 63.29059829059829,
+            "bal_acc": 63.29059829059829,
+            "f1": 62.02496477734779
+          },
+          "M02_cnn1d_int8": {
+            "acc": 63.8034188034188,
+            "bal_acc": 63.8034188034188,
+            "f1": 62.70344572160715
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 63.888888888888886,
+            "bal_acc": 63.88888888888889,
+            "f1": 62.816398056450204,
+            "ee_ratio": 47.90598290598291
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 34.91,
+            "balanced_accuracy_pct": 34.91,
+            "macro_f1_pct": 27.25,
+            "fast_path_ratio_pct": 17.7,
+            "deep_path_ratio_pct": 82.3,
+            "macro_accuracy_pct": 60.56,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 27526.153846153848,
+            "latency_ms": 0.1146923076923077,
+            "energy_mj": 0.017031807692307693,
+            "sram_kb": 9.19921875,
+            "flash_kb": 4.291015625,
+            "irc": 3044.19,
+            "iee": 21270.64
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int32",
+          "M01_micro_lda_q7": {
+            "acc": 63.418803418803414,
+            "bal_acc": 63.418803418803414,
+            "f1": 62.22106745829521
+          },
+          "M02_cnn1d_int8": {
+            "acc": 63.8034188034188,
+            "bal_acc": 63.80341880341881,
+            "f1": 62.72348853964913
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 63.931623931623925,
+            "bal_acc": 63.93162393162394,
+            "f1": 62.87105792872389,
+            "ee_ratio": 47.69230769230769
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 35.17,
+            "balanced_accuracy_pct": 35.17,
+            "macro_f1_pct": 27.65,
+            "fast_path_ratio_pct": 18.0,
+            "deep_path_ratio_pct": 82.0,
+            "macro_accuracy_pct": 60.64,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 27441.23076923077,
+            "latency_ms": 0.11433846153846154,
+            "energy_mj": 0.016979261538461538,
+            "sram_kb": 9.19921875,
+            "flash_kb": 4.291015625,
+            "irc": 3076.04,
+            "iee": 21493.16
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int16",
+          "M01_micro_lda_q7": {
+            "acc": 64.1880341880342,
+            "bal_acc": 64.1880341880342,
+            "f1": 62.89517636325027
+          },
+          "M02_cnn1d_int8": {
+            "acc": 63.418803418803414,
+            "bal_acc": 63.418803418803414,
+            "f1": 62.35917473392956
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 63.46153846153846,
+            "bal_acc": 63.46153846153846,
+            "f1": 62.42182385031606,
+            "ee_ratio": 47.863247863247864
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 34.96,
+            "balanced_accuracy_pct": 34.96,
+            "macro_f1_pct": 27.15,
+            "fast_path_ratio_pct": 17.7,
+            "deep_path_ratio_pct": 82.3,
+            "macro_accuracy_pct": 60.17,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 27540.30769230769,
+            "latency_ms": 0.11475128205128204,
+            "energy_mj": 0.017040565384615382,
+            "sram_kb": 9.19921875,
+            "flash_kb": 4.291015625,
+            "irc": 3046.35,
+            "iee": 21285.73
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int8",
+          "M01_micro_lda_q7": {
+            "acc": 62.26495726495727,
+            "bal_acc": 62.26495726495727,
+            "f1": 61.87837255819593
+          },
+          "M02_cnn1d_int8": {
+            "acc": 18.034188034188034,
+            "bal_acc": 18.03418803418803,
+            "f1": 10.998821487497054
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 36.53846153846153,
+            "bal_acc": 36.53846153846154,
+            "f1": 34.524142271218835,
+            "ee_ratio": 38.675213675213676
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 22.05,
+            "balanced_accuracy_pct": 22.05,
+            "macro_f1_pct": 17.45,
+            "fast_path_ratio_pct": 14.4,
+            "deep_path_ratio_pct": 85.6,
+            "macro_accuracy_pct": 54.36,
+            "fine_accuracy_pct": 80.0,
+            "cycles": 28630.153846153848,
+            "latency_ms": 0.1192923076923077,
+            "energy_mj": 0.017714907692307692,
+            "sram_kb": 9.19921875,
+            "flash_kb": 4.291015625,
+            "irc": 1848.51,
+            "iee": 12916.06
+          }
+        }
+      ]
+    },
+    "ninapro": {
+      "subject": "S4",
+      "num_classes": 50,
+      "scenarios": [
+        {
+          "num_channels": 12,
+          "precision": "float32",
+          "M01_micro_lda_q7": {
+            "acc": 47.864004044489384,
+            "bal_acc": 50.86986076282594,
+            "f1": 48.500274059637356
+          },
+          "M02_cnn1d_int8": {
+            "acc": 58.619817997977755,
+            "bal_acc": 49.602637613755746,
+            "f1": 52.425766155114076
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 55.3020728008089,
+            "bal_acc": 51.44945063587599,
+            "f1": 51.691636149864706,
+            "ee_ratio": 59.03058645096056
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 57.96,
+            "balanced_accuracy_pct": 53.9,
+            "macro_f1_pct": 53.03,
+            "fast_path_ratio_pct": 69.0,
+            "deep_path_ratio_pct": 31.0,
+            "macro_accuracy_pct": 76.37,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 23841.12234580384,
+            "latency_ms": 0.09933800977418267,
+            "energy_mj": 0.014751694451466126,
+            "sram_kb": 25.33203125,
+            "flash_kb": 8.890625,
+            "irc": 29171.25,
+            "iee": 139946.97
+          }
+        },
+        {
+          "num_channels": 12,
+          "precision": "float16",
+          "M01_micro_lda_q7": {
+            "acc": 47.85768452982811,
+            "bal_acc": 50.84154389726958,
+            "f1": 48.50196433631711
+          },
+          "M02_cnn1d_int8": {
+            "acc": 58.619817997977755,
+            "bal_acc": 49.58799598052251,
+            "f1": 52.46014439280777
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 55.2767947421638,
+            "bal_acc": 51.41459439586392,
+            "f1": 51.64677587533109,
+            "ee_ratio": 59.15697674418605
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 58.03,
+            "balanced_accuracy_pct": 53.99,
+            "macro_f1_pct": 53.15,
+            "fast_path_ratio_pct": 69.0,
+            "deep_path_ratio_pct": 31.0,
+            "macro_accuracy_pct": 76.42,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 23850.566228513646,
+            "latency_ms": 0.09937735928547352,
+            "energy_mj": 0.014757537853892817,
+            "sram_kb": 25.33203125,
+            "flash_kb": 8.890625,
+            "irc": 29197.85,
+            "iee": 140074.6
+          }
+        },
+        {
+          "num_channels": 12,
+          "precision": "int32",
+          "M01_micro_lda_q7": {
+            "acc": 47.864004044489384,
+            "bal_acc": 50.86986076282594,
+            "f1": 48.502433479804814
+          },
+          "M02_cnn1d_int8": {
+            "acc": 58.62613751263903,
+            "bal_acc": 49.6106697422698,
+            "f1": 52.43566350464075
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 55.308392315470165,
+            "bal_acc": 51.45748276439005,
+            "f1": 51.70145865486479,
+            "ee_ratio": 59.04322548028311
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 57.96,
+            "balanced_accuracy_pct": 53.9,
+            "macro_f1_pct": 53.03,
+            "fast_path_ratio_pct": 69.0,
+            "deep_path_ratio_pct": 31.0,
+            "macro_accuracy_pct": 76.37,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 23841.12234580384,
+            "latency_ms": 0.09933800977418267,
+            "energy_mj": 0.014751694451466126,
+            "sram_kb": 25.33203125,
+            "flash_kb": 8.890625,
+            "irc": 29171.25,
+            "iee": 139946.97
+          }
+        },
+        {
+          "num_channels": 12,
+          "precision": "int16",
+          "M01_micro_lda_q7": {
+            "acc": 47.96511627906977,
+            "bal_acc": 51.03456341831162,
+            "f1": 48.69776234789982
+          },
+          "M02_cnn1d_int8": {
+            "acc": 58.619817997977755,
+            "bal_acc": 49.5880937735506,
+            "f1": 52.40511049236501
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 55.352628918099086,
+            "bal_acc": 51.45062365418316,
+            "f1": 51.71673735647233,
+            "ee_ratio": 59.138018200202225
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 58.08,
+            "balanced_accuracy_pct": 53.99,
+            "macro_f1_pct": 53.17,
+            "fast_path_ratio_pct": 69.0,
+            "deep_path_ratio_pct": 31.0,
+            "macro_accuracy_pct": 76.42,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 23860.01011122346,
+            "latency_ms": 0.09941670879676441,
+            "energy_mj": 0.014763381256319515,
+            "sram_kb": 25.33203125,
+            "flash_kb": 8.890625,
+            "irc": 29208.54,
+            "iee": 140125.89
+          }
+        },
+        {
+          "num_channels": 12,
+          "precision": "int8",
+          "M01_micro_lda_q7": {
+            "acc": 53.109201213346815,
+            "bal_acc": 45.983810019456016,
+            "f1": 46.61006497910013
+          },
+          "M02_cnn1d_int8": {
+            "acc": 9.864762386248737,
+            "bal_acc": 15.525147383616023,
+            "f1": 13.259268399155083
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 42.44186046511628,
+            "bal_acc": 39.16594442855621,
+            "f1": 42.073635828904806,
+            "ee_ratio": 61.849089989888775
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 51.64,
+            "balanced_accuracy_pct": 40.11,
+            "macro_f1_pct": 39.36,
+            "fast_path_ratio_pct": 69.9,
+            "deep_path_ratio_pct": 30.1,
+            "macro_accuracy_pct": 76.79,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 23198.9383215369,
+            "latency_ms": 0.09666224300640376,
+            "energy_mj": 0.014354343086450958,
+            "sram_kb": 25.33203125,
+            "flash_kb": 8.890625,
+            "irc": 26709.89,
+            "iee": 128138.78
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "float32",
+          "M01_micro_lda_q7": {
+            "acc": 16.177957532861477,
+            "bal_acc": 16.032582909410323,
+            "f1": 12.884240950842052
+          },
+          "M02_cnn1d_int8": {
+            "acc": 39.888776541961576,
+            "bal_acc": 15.773586570558587,
+            "f1": 16.557138296208223
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 39.57912032355915,
+            "bal_acc": 15.678027900916188,
+            "f1": 15.806123408667538,
+            "ee_ratio": 7.457027300303337
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 10.07,
+            "balanced_accuracy_pct": 14.59,
+            "macro_f1_pct": 12.26,
+            "fast_path_ratio_pct": 24.3,
+            "deep_path_ratio_pct": 75.7,
+            "macro_accuracy_pct": 48.94,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 25366.97674418605,
+            "latency_ms": 0.10569573643410854,
+            "energy_mj": 0.015695816860465117,
+            "sram_kb": 9.19921875,
+            "flash_kb": 5.16015625,
+            "irc": 4765.24,
+            "iee": 33296.1
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "float16",
+          "M01_micro_lda_q7": {
+            "acc": 16.158998988877656,
+            "bal_acc": 16.072829541894695,
+            "f1": 12.906943237839819
+          },
+          "M02_cnn1d_int8": {
+            "acc": 39.92669362992922,
+            "bal_acc": 15.83916148325198,
+            "f1": 16.646494527714406
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 39.629676440849344,
+            "bal_acc": 15.761847835674727,
+            "f1": 15.92775736192871,
+            "ee_ratio": 7.431749241658241
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 10.04,
+            "balanced_accuracy_pct": 14.57,
+            "macro_f1_pct": 12.23,
+            "fast_path_ratio_pct": 24.2,
+            "deep_path_ratio_pct": 75.8,
+            "macro_accuracy_pct": 48.92,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 25379.534883720928,
+            "latency_ms": 0.10574806201550387,
+            "energy_mj": 0.015703587209302323,
+            "sram_kb": 9.19921875,
+            "flash_kb": 5.16015625,
+            "irc": 4744.95,
+            "iee": 33154.35
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int32",
+          "M01_micro_lda_q7": {
+            "acc": 16.177957532861477,
+            "bal_acc": 16.032582909410323,
+            "f1": 12.884240950842052
+          },
+          "M02_cnn1d_int8": {
+            "acc": 39.888776541961576,
+            "bal_acc": 15.773586570558587,
+            "f1": 16.557651913769323
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 39.57912032355915,
+            "bal_acc": 15.678027900916188,
+            "f1": 15.806123408667538,
+            "ee_ratio": 7.457027300303337
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 10.07,
+            "balanced_accuracy_pct": 14.59,
+            "macro_f1_pct": 12.26,
+            "fast_path_ratio_pct": 24.2,
+            "deep_path_ratio_pct": 75.8,
+            "macro_accuracy_pct": 48.94,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 25369.069767441862,
+            "latency_ms": 0.1057044573643411,
+            "energy_mj": 0.015697111918604654,
+            "sram_kb": 9.19921875,
+            "flash_kb": 5.16015625,
+            "irc": 4764.84,
+            "iee": 33293.35
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int16",
+          "M01_micro_lda_q7": {
+            "acc": 16.190596562184023,
+            "bal_acc": 16.02094359988452,
+            "f1": 12.863120302914217
+          },
+          "M02_cnn1d_int8": {
+            "acc": 39.901415571284126,
+            "bal_acc": 15.800766132380481,
+            "f1": 16.617388394400862
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 39.604398382204245,
+            "bal_acc": 15.721680254875658,
+            "f1": 15.87926234087874,
+            "ee_ratio": 7.463346814964611
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 10.1,
+            "balanced_accuracy_pct": 14.66,
+            "macro_f1_pct": 12.31,
+            "fast_path_ratio_pct": 24.3,
+            "deep_path_ratio_pct": 75.7,
+            "macro_accuracy_pct": 48.95,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 25362.790697674416,
+            "latency_ms": 0.1056782945736434,
+            "energy_mj": 0.015693226744186044,
+            "sram_kb": 9.19921875,
+            "flash_kb": 5.16015625,
+            "irc": 4780.97,
+            "iee": 33406.05
+          }
+        },
+        {
+          "num_channels": 2,
+          "precision": "int8",
+          "M01_micro_lda_q7": {
+            "acc": 21.195652173913043,
+            "bal_acc": 14.838190632299444,
+            "f1": 11.945592108615708
+          },
+          "M02_cnn1d_int8": {
+            "acc": 37.75278058645096,
+            "bal_acc": 13.695241854553073,
+            "f1": 13.77051484512218
+          },
+          "M07_hybrid_lda_cnn_cascade": {
+            "acc": 37.51895854398382,
+            "bal_acc": 13.84191486410414,
+            "f1": 13.303708237081796,
+            "ee_ratio": 7.197927199191103
+          },
+          "M11_hierarchical_coarse_fine": {
+            "accuracy_pct": 8.04,
+            "balanced_accuracy_pct": 12.36,
+            "macro_f1_pct": 10.59,
+            "fast_path_ratio_pct": 22.4,
+            "deep_path_ratio_pct": 77.6,
+            "macro_accuracy_pct": 48.99,
+            "fine_accuracy_pct": 60.0,
+            "cycles": 25965.581395348836,
+            "latency_ms": 0.10818992248062015,
+            "energy_mj": 0.01606620348837209,
+            "sram_kb": 9.19921875,
+            "flash_kb": 5.16015625,
+            "irc": 3717.88,
+            "iee": 25977.9
+          }
+        }
+      ]
+    }
+  },
+  "elapsed_seconds": 781.16
+}

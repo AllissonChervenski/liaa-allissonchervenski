@@ -1,0 +1,543 @@
+{
+  "metadata": {
+    "target": "esp32s3-wroom",
+    "channels": 4,
+    "classes": 10,
+    "engine": "micro_lda_q7",
+    "adc_scale": 3276.7
+  },
+  "metrics": {
+    "dataset": "Ozdemir et al. (4CH sEMG, 2000 Hz, 10 Gestures)",
+    "subject": "S1",
+    "split": "Test Repetition 2 (LOTO)",
+    "total_windows": 1170,
+    "parity": {
+      "matches": 1170,
+      "total": 1170,
+      "ratio": 1.0,
+      "percent": 100.0
+    },
+    "accuracy": {
+      "raw_top1_accuracy": 0.7692307692307693,
+      "raw_top1_percent": 76.92307692307693,
+      "raw_balanced_accuracy": 0.7692307692307693,
+      "raw_macro_f1": 0.7738802694455764,
+      "vote3_top1_accuracy": 0.7658119658119659,
+      "vote3_top1_percent": 76.5811965811966,
+      "vote3_balanced_accuracy": 0.7658119658119658,
+      "vote3_macro_f1": 0.7698898146814138,
+      "majority_vote_gain_percent": -0.34188034188034067
+    },
+    "per_class_raw": [
+      {
+        "class_id": 0,
+        "gesture_name": "Rest",
+        "total_windows": 117,
+        "true_positives": 94,
+        "false_positives": 90,
+        "false_negatives": 23,
+        "precision": 0.5108695652173914,
+        "recall": 0.8034188034188035,
+        "f1_score": 0.6245847176079735,
+        "specificity": 0.9145299145299145
+      },
+      {
+        "class_id": 1,
+        "gesture_name": "Extension",
+        "total_windows": 117,
+        "true_positives": 115,
+        "false_positives": 0,
+        "false_negatives": 2,
+        "precision": 1.0,
+        "recall": 0.9829059829059829,
+        "f1_score": 0.9913793103448275,
+        "specificity": 1.0
+      },
+      {
+        "class_id": 2,
+        "gesture_name": "Flexion",
+        "total_windows": 117,
+        "true_positives": 112,
+        "false_positives": 0,
+        "false_negatives": 5,
+        "precision": 1.0,
+        "recall": 0.9572649572649573,
+        "f1_score": 0.9781659388646288,
+        "specificity": 1.0
+      },
+      {
+        "class_id": 3,
+        "gesture_name": "Ulnar Dev",
+        "total_windows": 117,
+        "true_positives": 109,
+        "false_positives": 5,
+        "false_negatives": 8,
+        "precision": 0.956140350877193,
+        "recall": 0.9316239316239316,
+        "f1_score": 0.9437229437229437,
+        "specificity": 0.9952516619183286
+      },
+      {
+        "class_id": 4,
+        "gesture_name": "Radial Dev",
+        "total_windows": 117,
+        "true_positives": 101,
+        "false_positives": 1,
+        "false_negatives": 16,
+        "precision": 0.9901960784313726,
+        "recall": 0.8632478632478633,
+        "f1_score": 0.9223744292237442,
+        "specificity": 0.9990503323836657
+      },
+      {
+        "class_id": 5,
+        "gesture_name": "Grip",
+        "total_windows": 117,
+        "true_positives": 108,
+        "false_positives": 6,
+        "false_negatives": 9,
+        "precision": 0.9473684210526315,
+        "recall": 0.9230769230769231,
+        "f1_score": 0.935064935064935,
+        "specificity": 0.9943019943019943
+      },
+      {
+        "class_id": 6,
+        "gesture_name": "Abduction",
+        "total_windows": 117,
+        "true_positives": 58,
+        "false_positives": 2,
+        "false_negatives": 59,
+        "precision": 0.9666666666666667,
+        "recall": 0.49572649572649574,
+        "f1_score": 0.655367231638418,
+        "specificity": 0.9981006647673314
+      },
+      {
+        "class_id": 7,
+        "gesture_name": "Adduction",
+        "total_windows": 117,
+        "true_positives": 60,
+        "false_positives": 92,
+        "false_negatives": 57,
+        "precision": 0.39473684210526316,
+        "recall": 0.5128205128205128,
+        "f1_score": 0.44609665427509293,
+        "specificity": 0.912630579297246
+      },
+      {
+        "class_id": 8,
+        "gesture_name": "Supination",
+        "total_windows": 117,
+        "true_positives": 96,
+        "false_positives": 30,
+        "false_negatives": 21,
+        "precision": 0.7619047619047619,
+        "recall": 0.8205128205128205,
+        "f1_score": 0.7901234567901233,
+        "specificity": 0.9715099715099715
+      },
+      {
+        "class_id": 9,
+        "gesture_name": "Pronation",
+        "total_windows": 117,
+        "true_positives": 47,
+        "false_positives": 44,
+        "false_negatives": 70,
+        "precision": 0.5164835164835165,
+        "recall": 0.4017094017094017,
+        "f1_score": 0.451923076923077,
+        "specificity": 0.9582146248812915
+      }
+    ],
+    "per_class_vote3": [
+      {
+        "class_id": 0,
+        "gesture_name": "Rest",
+        "total_windows": 117,
+        "true_positives": 98,
+        "false_positives": 94,
+        "false_negatives": 19,
+        "precision": 0.5104166666666666,
+        "recall": 0.8376068376068376,
+        "f1_score": 0.6343042071197411
+      },
+      {
+        "class_id": 1,
+        "gesture_name": "Extension",
+        "total_windows": 117,
+        "true_positives": 115,
+        "false_positives": 0,
+        "false_negatives": 2,
+        "precision": 1.0,
+        "recall": 0.9829059829059829,
+        "f1_score": 0.9913793103448275
+      },
+      {
+        "class_id": 2,
+        "gesture_name": "Flexion",
+        "total_windows": 117,
+        "true_positives": 111,
+        "false_positives": 0,
+        "false_negatives": 6,
+        "precision": 1.0,
+        "recall": 0.9487179487179487,
+        "f1_score": 0.9736842105263158
+      },
+      {
+        "class_id": 3,
+        "gesture_name": "Ulnar Dev",
+        "total_windows": 117,
+        "true_positives": 109,
+        "false_positives": 4,
+        "false_negatives": 8,
+        "precision": 0.9646017699115044,
+        "recall": 0.9316239316239316,
+        "f1_score": 0.9478260869565217
+      },
+      {
+        "class_id": 4,
+        "gesture_name": "Radial Dev",
+        "total_windows": 117,
+        "true_positives": 100,
+        "false_positives": 1,
+        "false_negatives": 17,
+        "precision": 0.9900990099009901,
+        "recall": 0.8547008547008547,
+        "f1_score": 0.9174311926605504
+      },
+      {
+        "class_id": 5,
+        "gesture_name": "Grip",
+        "total_windows": 117,
+        "true_positives": 108,
+        "false_positives": 5,
+        "false_negatives": 9,
+        "precision": 0.9557522123893806,
+        "recall": 0.9230769230769231,
+        "f1_score": 0.9391304347826088
+      },
+      {
+        "class_id": 6,
+        "gesture_name": "Abduction",
+        "total_windows": 117,
+        "true_positives": 55,
+        "false_positives": 3,
+        "false_negatives": 62,
+        "precision": 0.9482758620689655,
+        "recall": 0.4700854700854701,
+        "f1_score": 0.6285714285714287
+      },
+      {
+        "class_id": 7,
+        "gesture_name": "Adduction",
+        "total_windows": 117,
+        "true_positives": 61,
+        "false_positives": 97,
+        "false_negatives": 56,
+        "precision": 0.3860759493670886,
+        "recall": 0.5213675213675214,
+        "f1_score": 0.4436363636363637
+      },
+      {
+        "class_id": 8,
+        "gesture_name": "Supination",
+        "total_windows": 117,
+        "true_positives": 95,
+        "false_positives": 30,
+        "false_negatives": 22,
+        "precision": 0.76,
+        "recall": 0.811965811965812,
+        "f1_score": 0.7851239669421488
+      },
+      {
+        "class_id": 9,
+        "gesture_name": "Pronation",
+        "total_windows": 117,
+        "true_positives": 44,
+        "false_positives": 40,
+        "false_negatives": 73,
+        "precision": 0.5238095238095238,
+        "recall": 0.37606837606837606,
+        "f1_score": 0.43781094527363185
+      }
+    ],
+    "confusion_matrix_raw": [
+      [
+        94,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        23
+      ],
+      [
+        0,
+        115,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        112,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        109,
+        0,
+        0,
+        0,
+        6,
+        0,
+        2
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        101,
+        0,
+        2,
+        1,
+        0,
+        13
+      ],
+      [
+        8,
+        0,
+        0,
+        0,
+        0,
+        108,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        3,
+        0,
+        0,
+        3,
+        1,
+        1,
+        58,
+        51,
+        0,
+        0
+      ],
+      [
+        51,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        60,
+        3,
+        3
+      ],
+      [
+        11,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0,
+        5,
+        96,
+        1
+      ],
+      [
+        13,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        29,
+        27,
+        47
+      ]
+    ],
+    "confusion_matrix_vote3": [
+      [
+        98,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        19
+      ],
+      [
+        0,
+        115,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        0,
+        111,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        109,
+        0,
+        0,
+        0,
+        5,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        100,
+        0,
+        3,
+        0,
+        0,
+        14
+      ],
+      [
+        9,
+        0,
+        0,
+        0,
+        0,
+        108,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        2,
+        1,
+        1,
+        55,
+        56,
+        0,
+        0
+      ],
+      [
+        52,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        61,
+        2,
+        2
+      ],
+      [
+        12,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0,
+        5,
+        95,
+        1
+      ],
+      [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        31,
+        28,
+        44
+      ]
+    ],
+    "timing_and_resources": {
+      "core1_latency_us": {
+        "mean": 329.216094017094,
+        "std": 4.297056759525011,
+        "min": 320.93,
+        "p50": 328.975,
+        "p95": 336.0,
+        "p99": 346.08209999999997,
+        "max": 354.42
+      },
+      "classifier_only_us": {
+        "mean": 17.20493162393162,
+        "min": 15.32,
+        "max": 30.96
+      },
+      "core0_cycles": {
+        "mean": 155107.5076923077,
+        "min": 152011,
+        "max": 160127
+      },
+      "core1_cycles": {
+        "mean": 79011.86666666667,
+        "min": 77023,
+        "max": 85060
+      },
+      "stack_high_water_mark_min_bytes": {
+        "core0_free_min": 2352,
+        "core1_free_min": 3332
+      },
+      "realtime_stride_budget_us": 50000.0,
+      "realtime_cpu_utilization_percent": 0.658432188034188,
+      "realtime_slack_margin_percent": 99.29116
+    }
+  }
+}

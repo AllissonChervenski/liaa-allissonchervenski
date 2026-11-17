@@ -1,0 +1,30 @@
+{
+  "seed": 42,
+  "elapsed_seconds": 236.7,
+  "ozdemir": {
+    "subject_id": "S1",
+    "in_channels": 4,
+    "num_classes": 10,
+    "total_params": 2858,
+    "fp32_top1_acc": 0.808974,
+    "fp32_bal_acc": 0.808974,
+    "fp32_macro_f1": 0.805924,
+    "int8_top1_acc": 0.808974,
+    "int8_bal_acc": 0.808974,
+    "int8_macro_f1": 0.804889,
+    "num_test_windows": 2340
+  },
+  "ninapro": {
+    "subject_id": "S4",
+    "in_channels": 12,
+    "num_classes": 50,
+    "total_params": 7554,
+    "fp32_top1_acc": 0.594666,
+    "fp32_bal_acc": 0.506299,
+    "fp32_macro_f1": 0.535002,
+    "int8_top1_acc": 0.592834,
+    "int8_bal_acc": 0.503437,
+    "int8_macro_f1": 0.530791,
+    "num_test_windows": 15824
+  }
+}
