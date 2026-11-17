@@ -812,6 +812,106 @@ tr:last-child td {
   line-height: 1.5;
 }
 
+/* ==========================================================================
+   SEÇÃO DE VÍDEOS DO PROJETO (RESUMO & RETROSPECTIVA)
+   ========================================================================== */
+
+.video-grid {
+  align-items: stretch;
+}
+
+.video-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.video-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.video-role-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+}
+
+.video-role-resumo {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.video-role-retro {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.video-duration-tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.video-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.video-card-desc {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.video-player-wrap {
+  width: 100%;
+  margin-top: 0.25rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: #020617;
+  border: 1px solid var(--color-border);
+  aspect-ratio: 16 / 9;
+}
+
+.project-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  background-color: #020617;
+}
+
+.video-card-footer {
+  margin-top: auto;
+  padding-top: 0.35rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.video-download-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.video-download-link:hover {
+  text-decoration: underline;
+}
+
 /* Tabelas responsivas adicionais & contenção de overflow em mobile */
 .card, .chart-card, .kpi-card, .arch-card {
   min-width: 0;
