@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIAA | Dashboard de Benchmarks sEMG &amp; TinyML para ESP32-S3</title>
+  <meta name="description" content="Dashboard comparativo de acurácia, latência, energia, quantizações e redução de canais com índices IRC e IEE para 11 modelos de decodificação sEMG no ESP32-S3.">
+  <link rel="stylesheet" href="css/style.css?v=20261117-4">
+  <style>
+    /* Fallback crítico: drawer escuro alinhado à direita + backdrop */
+    .site-header { position: sticky; top: 0; z-index: 1000; }
+    .nav-backdrop { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.72); opacity: 0; pointer-events: none; z-index: 1100; }
+    .nav-backdrop.open { opacity: 1; pointer-events: auto; }
+    .site-nav { position: fixed; top: 0; right: 0; width: min(380px, 86vw); height: 100vh; background: #0f172a; color: #f8fafc; z-index: 1200; transform: translateX(100%); visibility: hidden; overflow-y: auto; }
+    .site-nav.open { transform: translateX(0); visibility: visible; }
+    .site-nav .nav-menu { display: flex; flex-direction: column; list-style: none; }
+  </style>
+  <!-- Chart.js para renderização de gráficos interativos (defer para não bloquear o menu) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body>
+
+  <!-- ======================================================================
+       CABEÇALHO E NAVEGAÇÃO (MENU SANDUÍCHE LATERAL DIREITO ESCURO)
+       ====================================================================== -->
+  <header class="site-header">
+    <div class="container">
+      <div class="nav-wrapper">
+        <a href="#" class="site-brand">LIAA <span>| Allisson Chervenski</span></a>
+        <button
+          id="navToggle"
+          class="nav-toggle"
+          type="button"
+          aria-controls="siteNav"
+          aria-expanded="false"
+          aria-label="Abrir sumário de navegação"
+        >
+          <svg class="nav-icon-bars" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <svg class="nav-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span class="nav-toggle-label">Sumário</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Escurecimento da página para focar exclusivamente no menu -->
+  <div id="navBackdrop" class="nav-backdrop" aria-hidden="true"></div>
+
+  <!-- Gaveta Lateral Direita Escura sobreposta ao conteúdo -->
+  <nav id="siteNav" class="site-nav" aria-label="Sumário principal" aria-hidden="true">
+    <div class="nav-drawer-header">
+      <span class="nav-summary-title">Sumário do Projeto</span>
+      <button id="navClose" class="nav-drawer-close" type="button" aria-label="Fechar sumário">&times;</button>
+    </div>
+    <ul class="nav-menu">
+      <li><a href="#dashboard" class="nav-link">1. Dashboard Interativo de Benchmarks</a></li>
+      <li><a href="#suavizacao-temporal" class="nav-link">2. Suavização Temporal (P1), CNN-2D (P2), SupCon (P3) &amp; 636 Features (P4)</a></li>
+      <li><a href="#teoria-modelos" class="nav-link">3. Fundamentação Arquitetural e Hipóteses de Projeto</a></li>
+      <li><a href="#modelos" class="nav-link">4. Benchmarks Detalhados Separados por Modelo</a></li>
+      <li><a href="#quant-canais" class="nav-link">5. Matriz de Quantizações, Canais e Índices IRC / IEE</a></li>
+      <li><a href="#hardware" class="nav-link">6. Comparativo de Hardware: ESP32-S3 Emulado vs. Físico Real</a></li>
+      <li><a href="#contexto" class="nav-link">7. Contexto do Projeto e Formulação do Problema</a></li>
+      <li><a href="#solucao" class="nav-link">8. Proposta de Solução Técnica</a></li>
+      <li><a href="#evolucao" class="nav-link">9. Evolução e Andamento ao Longo do Semestre</a></li>
+      <li><a href="https://github.com/AllissonChervenski/liaa-allissonchervenski" target="_blank" rel="noopener" class="nav-link nav-link-external">GitHub do Projeto &#x2197;</a></li>
+    </ul>
+  </nav>
+
+  <script>
+    (function () {
+      var btn = document.getElementById("navToggle");
+      var closeBtn = document.getElementById("navClose");
+      var nav = document.getElementById("siteNav");
+      var backdrop = document.getElementById("navBackdrop");
+      if (!btn || !nav || btn.dataset.navBound === "1") return;
+      btn.dataset.navBound = "1";
+      function setOpen(open) {
+        nav.classList.toggle("open", open);
+        nav.setAttribute("aria-hidden", String(!open));
+        if (backdrop) backdrop.classList.toggle("open", open);
+        btn.classList.toggle("is-open", open);
+        btn.setAttribute("aria-expanded", String(open));
+      }
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setOpen(!nav.classList.contains("open"));
+      });
+      if (closeBtn) closeBtn.addEventListener("click", function () { setOpen(false); });
+      if (backdrop) backdrop.addEventListener("click", function () { setOpen(false); });
+      nav.querySelectorAll(".nav-link").forEach(function (link) {
+        link.addEventListener("click", function () { setOpen(false); });
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && nav.classList.contains("open")) setOpen(false);
+      });
+    })();
+  </script>
+
+  <!-- ======================================================================
+       HERO EXECUTIVO COM KPIS DO PROJETO
+       ====================================================================== -->
+  <section class="hero-section">
+    <div class="container">
+      <span class="hero-tag">Plataforma Experimental • LIAA / GitHub Pages</span>
+      <h1 class="hero-title">Dashboard de Benchmarks: Decodificação Neuromuscular em TinyML</h1>
+      <p class="hero-subtitle">
+        Avaliação sistemática de 14 arquiteturas (Micro-LDA, CNN-1D INT8, CNN-2D Circular, SupCon CNN-2D, Extração Rica 636-D + SupCon MLP, DTW assintótico, cascatas e hierarquia Coarse-to-Fine) com validação de ciclo de clock, energia e índices IRC e IEE para ESP32-S3.
+      </p>
+
+      <!-- KPIs Rápidos do Projeto -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">14</div>
+          <div class="kpi-label">Arquiteturas Estudadas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">5 &times; 7</div>
+          <div class="kpi-label">Matriz Quantização &times; Canais</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">&gt; 18.000</div>
+          <div class="kpi-label">Janelas Testadas por Modelo</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">71,06%</div>
+          <div class="kpi-label">Recorde NinaPro 50cls (M14)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">84,27%</div>
+          <div class="kpi-label">Ozdemir 4CH (Enh-LDA / M14)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">686.361</div>
+          <div class="kpi-label">Maior IRC (M01 Q7)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">5.639.679</div>
+          <div class="kpi-label">Maior IEE (M01 Q7)</div>
+        </div>
+      </div>
+
+      <div class="hero-metadata">
+        <div><strong>Autor:</strong> Allisson Chervenski</div>
+        <div><strong>Laboratório:</strong> LIAA (Inteligência Artificial Aplicada)</div>
+        <div><strong>Hardware Target:</strong> ESP32-S3 (Xtensa LX7 @ 240 MHz)</div>
+        <div><strong>Paridade QEMU ↔ Host:</strong> 100,0% Bit-Exata</div>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <!-- ====================================================================
+         1. DASHBOARD PRINCIPAL COM GRÁFICOS (CARDS COM MINIATURAS EXPANSÍVEIS)
+         ==================================================================== -->
+    <section id="dashboard" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">1. Dashboard Interativo de Benchmarks</h2>
+          <p class="section-lead">
+            Miniaturas interativas das 6 análises comparativas. <strong>Clique em qualquer gráfico para expandir</strong> em tela cheia com alta resolução.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Gráfico 1: Acurácia Top-1 nos dois datasets -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Acurácia Top-1 Comparativa por Modelo</h3>
+                <p class="chart-desc">NinaPro DB2 (50 classes, 12CH) vs. Ozdemir et al. (10 classes, 4CH).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartAccuracy"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 2: Fronteira de Pareto Latência vs Acurácia -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Fronteira de Pareto: Latência vs. Acurácia (NinaPro DB2)</h3>
+                <p class="chart-desc">Tempo de inferência no ESP32-S3 @ 240 MHz (escala log) vs. Acurácia Top-1.</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartPareto"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 3: Consumo de Energia Médio -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Consumo Energético Médio por Inferência (mJ)</h3>
+                <p class="chart-desc">Poder de bateria no ESP32-S3 (Verde &lt; 0.015 mJ | Amarelo &lt; 0.050 mJ | Vermelho &gt; 0.050 mJ).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartEnergy"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 4: Resiliência à Quantização (Float32 vs INT8) -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Resiliência à Quantização: Float32 vs. INT8</h3>
+                <p class="chart-desc">Impacto da quantização em 8 bits na entrada (12 canais, NinaPro DB2).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartQuant"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 5: Índice IRC (Responsividade de Gestos / ms) -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Índice IRC: Responsividade de Decodificação (Gestos/ms)</h3>
+                <p class="chart-desc">IRC = (Acurácia % &times; Nº Gestos) / Latência (ms) [Escala Logarítmica].</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartIrc"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 6: Índice IEE (Eficiência Embarcada em Silício) -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Índice IEE: Eficiência Embarcada (Bateria &amp; SRAM)</h3>
+                <p class="chart-desc">IEE = (Acurácia % &times; Nº Gestos) / (Energia &times; log10(SRAM)) [Escala Logarítmica].</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartIee"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 7: Suavização Temporal Causal (Passo 1) -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Suavização Temporal Causal: Acurácia vs. Janela K</h3>
+                <p class="chart-desc">Votação majoritária deslizante ($K \in [1..9]$, atraso $0..400\text{ ms}$) sem retreino.</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartSmoothing"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico 8: Ganho de Acurácia Delta % com Suavização -->
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Ganho Absoluto de Acurácia (+&Delta;%) com Votação Majoritária</h3>
+                <p class="chart-desc">Ganhos em $K=5$ ($200\text{ ms}$, ótimo clínico) e $K=9$ ($400\text{ ms}$, máximo).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartSmoothingDelta"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    <section id="suavizacao-temporal" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="badge" style="background-color: var(--color-primary); color: white; margin-bottom: 0.5rem; display: inline-block;">Novo &bull; Passos 1 a 4 Implementados (Rompendo 71% no NinaPro!)</span>
+          <h2 class="section-title">2. Suavização Temporal (P1), CNN-2D Circular (P2), SupCon (P3) &amp; 636 Features (P4)</h2>
+          <p class="section-lead">
+            Evolução completa da acurácia no NinaPro DB2 (50 classes): da linha base estática (~58%) até <strong>68,59%</strong> ($K=5$) e <strong>71,06%</strong> ($K=9$) com extração rica multi-domínio (<strong>M14</strong>).
+          </p>
+        </div>
+
+        <!-- Card: Fundamentação e Funcionamento Causal -->
+        <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--color-primary);">
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">Como Funciona o Pós-Processamento Temporal Causal em TinyML</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            Na segmentação padrão de sinais mioelétricos, usamos janelas de <strong>200 ms</strong> com stride de <strong>50 ms</strong> (75% de sobreposição). Isso significa que uma nova predição é gerada a cada 50 ms. Como uma contração muscular voluntária sustentada dura normalmente entre 1 e 5 segundos, de <strong>10 a 50 decisões consecutivas pertencem necessariamente à mesma intenção motora do usuário</strong>.
+          </p>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            A inferência estática quadro-a-quadro é suscetível a <em>glitches</em> — quedas momentâneas de acurácia causadas por microdeslocamento de eletrodos, ruído transitório ou fadiga. O filtro de <strong>votação majoritária causal</strong> atua como um filtro passa-baixas no domínio das decisões discretas:
+          </p>
+          <div style="background-color: #f1f5f9; padding: 1rem; border-radius: var(--border-radius); font-family: monospace; font-size: 0.95rem; margin-bottom: 1rem;">
+            &ycirc;<sub>t</sub> = moda(&ycirc;<sub>t</sub>, &ycirc;<sub>t-1</sub>, &hellip;, &ycirc;<sub>t-K+1</sub>) &emsp; [com desempate por persistência/histerese motora]
+          </div>
+          <div class="grid-3" style="margin-top: 1rem;">
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-primary); display: block; margin-bottom: 0.25rem;">Zero Retreino</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Aproveita 100% dos modelos M01, M02, M07 e M11 já compilados e quantizados.</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-success); display: block; margin-bottom: 0.25rem;">Custo Mínimo em SRAM</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Apenas K bytes de buffer circular FIFO na memória do ESP32-S3 (5 bytes para K=5).</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-warning); display: block; margin-bottom: 0.25rem;">&lt; 50 Ciclos de CPU</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Cálculo da moda em C99 leva &lt; 0,2 &mu;s no ESP32-S3 a 240 MHz (impacto nulo na bateria).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela Comparativa de Acurácia com Suavização Temporal -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h3 class="card-title">Matriz Completa de Acurácia: Raw vs. Suavização Temporal ($K \in \{1, 3, 5, 7, 9\}$)</h3>
+          <p class="card-text" style="margin-bottom: 1.5rem;">
+            Avaliação rigorosa sobre repetições de teste isoladas (Repetições 2 e 5): <strong>15.824 janelas no NinaPro DB2</strong> e <strong>2.340 janelas no Ozdemir et al.</strong> com reinicialização causal estrita nas fronteiras de repetição/exercício.
+          </p>
+
+          <h4 style="font-size: 1rem; color: var(--color-text-dark); margin-bottom: 0.75rem;">NinaPro DB2 (Sujeito S4 — 50 Classes | 15.824 Janelas de Teste)</h4>
+          <div class="table-responsive" style="margin-bottom: 2rem;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Canais</th>
+                  <th>Modelo</th>
+                  <th>Raw ($K=1$, 0ms)</th>
+                  <th>$K=3$ (100ms)</th>
+                  <th>$K=5$ (200ms)</th>
+                  <th>$K=7$ (300ms)</th>
+                  <th>$K=9$ (400ms)</th>
+                  <th>Ganho Máx (+&Delta;%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>12 CH</strong></td>
+                  <td><code>M01 (Micro-LDA Q7)</code></td>
+                  <td>47.97%</td>
+                  <td>48.69%</td>
+                  <td>49.42%</td>
+                  <td>50.18%</td>
+                  <td>50.80%</td>
+                  <td><span class="badge badge-success">+2.83%</span></td>
+                </tr>
+                <tr style="background-color: rgba(37, 99, 235, 0.04);">
+                  <td><strong>12 CH</strong></td>
+                  <td><code>M02 (CNN-1D INT8)</code></td>
+                  <td>58.62%</td>
+                  <td>59.88%</td>
+                  <td><strong>60.55%</strong></td>
+                  <td>61.43%</td>
+                  <td><strong>61.99%</strong></td>
+                  <td><span class="badge badge-success">+3.37%</span></td>
+                </tr>
+                <tr>
+                  <td><strong>12 CH</strong></td>
+                  <td><code>M07 (Cascata LDA+CNN)</code></td>
+                  <td>55.35%</td>
+                  <td>56.46%</td>
+                  <td>57.28%</td>
+                  <td>58.08%</td>
+                  <td>58.08%</td>
+                  <td><span class="badge badge-success">+2.73%</span></td>
+                </tr>
+                <tr style="background-color: rgba(220, 38, 38, 0.04);">
+                  <td><strong>12 CH</strong></td>
+                  <td><code>M11 (Hierárquico Coarse-Fine)</code></td>
+                  <td>58.08%</td>
+                  <td>59.23%</td>
+                  <td><strong>59.79%</strong></td>
+                  <td>60.83%</td>
+                  <td><strong>61.62%</strong></td>
+                  <td><span class="badge badge-success"><strong>+3.55%</strong></span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M01 (Micro-LDA Q7)</code></td>
+                  <td>16.19%</td>
+                  <td>16.44%</td>
+                  <td>17.13%</td>
+                  <td>18.05%</td>
+                  <td>18.78%</td>
+                  <td><span class="badge badge-success">+2.59%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M02 (CNN-1D INT8)</code></td>
+                  <td>39.90%</td>
+                  <td>40.25%</td>
+                  <td>40.72%</td>
+                  <td>40.90%</td>
+                  <td>41.17%</td>
+                  <td><span class="badge badge-success">+1.27%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M07 (Cascata LDA+CNN)</code></td>
+                  <td>39.60%</td>
+                  <td>39.90%</td>
+                  <td>40.34%</td>
+                  <td>40.43%</td>
+                  <td>40.68%</td>
+                  <td><span class="badge badge-success">+1.07%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M11 (Hierárquico Coarse-Fine)</code></td>
+                  <td>10.10%</td>
+                  <td>10.43%</td>
+                  <td>10.88%</td>
+                  <td>10.95%</td>
+                  <td>11.17%</td>
+                  <td><span class="badge badge-success">+1.06%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="font-size: 1rem; color: var(--color-text-dark); margin-bottom: 0.75rem;">Ozdemir et al. (Sujeito S1 — 10 Classes | 2.340 Janelas de Teste)</h4>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Canais</th>
+                  <th>Modelo</th>
+                  <th>Raw ($K=1$, 0ms)</th>
+                  <th>$K=3$ (100ms)</th>
+                  <th>$K=5$ (200ms)</th>
+                  <th>$K=7$ (300ms)</th>
+                  <th>$K=9$ (400ms)</th>
+                  <th>Ganho Máx (+&Delta;%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>4 CH</strong></td>
+                  <td><code>M01 (Micro-LDA Q7)</code></td>
+                  <td>81.97%</td>
+                  <td>82.01%</td>
+                  <td>82.52%</td>
+                  <td>82.69%</td>
+                  <td>83.03%</td>
+                  <td><span class="badge badge-success">+1.07%</span></td>
+                </tr>
+                <tr>
+                  <td><strong>4 CH</strong></td>
+                  <td><code>M02 (CNN-1D INT8)</code></td>
+                  <td>81.71%</td>
+                  <td>82.48%</td>
+                  <td>83.33%</td>
+                  <td>83.29%</td>
+                  <td>83.97%</td>
+                  <td><span class="badge badge-success">+2.26%</span></td>
+                </tr>
+                <tr style="background-color: rgba(13, 148, 136, 0.04);">
+                  <td><strong>4 CH</strong></td>
+                  <td><code>M07 (Cascata LDA+CNN)</code></td>
+                  <td>82.26%</td>
+                  <td>82.95%</td>
+                  <td><strong>84.15%</strong></td>
+                  <td>84.10%</td>
+                  <td><strong>85.00%</strong></td>
+                  <td><span class="badge badge-success"><strong>+2.74%</strong></span></td>
+                </tr>
+                <tr>
+                  <td><strong>4 CH</strong></td>
+                  <td><code>M11 (Hierárquico Coarse-Fine)</code></td>
+                  <td>61.24%</td>
+                  <td>60.90%</td>
+                  <td>61.20%</td>
+                  <td>61.37%</td>
+                  <td>61.75%</td>
+                  <td><span class="badge badge-neutral">+0.51%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M01 (Micro-LDA Q7)</code></td>
+                  <td>64.19%</td>
+                  <td>64.79%</td>
+                  <td>65.68%</td>
+                  <td>66.15%</td>
+                  <td>67.69%</td>
+                  <td><span class="badge badge-success"><strong>+3.50%</strong></span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M02 (CNN-1D INT8)</code></td>
+                  <td>63.42%</td>
+                  <td>63.97%</td>
+                  <td>64.57%</td>
+                  <td>65.51%</td>
+                  <td>65.73%</td>
+                  <td><span class="badge badge-success">+2.31%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M07 (Cascata LDA+CNN)</code></td>
+                  <td>63.46%</td>
+                  <td>64.06%</td>
+                  <td>64.74%</td>
+                  <td>65.38%</td>
+                  <td>65.73%</td>
+                  <td><span class="badge badge-success">+2.26%</span></td>
+                </tr>
+                <tr>
+                  <td>2 CH</td>
+                  <td><code>M11 (Hierárquico Coarse-Fine)</code></td>
+                  <td>34.96%</td>
+                  <td>34.91%</td>
+                  <td>34.79%</td>
+                  <td>33.97%</td>
+                  <td>33.29%</td>
+                  <td><span class="badge badge-neutral">+0.00%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card: Trade-off Latência vs Acurácia em Prótese Mioelétrica -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h3 class="card-title">Trade-off Clínico: Atraso Algorítmico vs. Estabilidade Motora em Próteses</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            Na literatura médica de reabilitação e controle de próteses mioelétricas superiores (Farina et al., 2014; Hudgins et al., 1993), o <strong>limiar perceptivo de latência aceitável</strong> para o usuário é de <strong>&le; 200 ms a 300 ms</strong>. Atrasos acima de 300 ms causam sensação de descontinuidade motora ("arrasto").
+          </p>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>$K$</th>
+                  <th>Atraso Algorítmico</th>
+                  <th>Janela Contínua Efetiva</th>
+                  <th>Impacto Perceptivo Clínico</th>
+                  <th>Recomendação para Prótese</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>1</strong></td>
+                  <td>0 ms</td>
+                  <td>200 ms</td>
+                  <td>Zero atraso, porém alto índice de flickering e trepidação em regime transitório.</td>
+                  <td><span class="badge badge-warning">Não recomendado</span></td>
+                </tr>
+                <tr>
+                  <td><strong>3</strong></td>
+                  <td>100 ms</td>
+                  <td>300 ms</td>
+                  <td>Redução sensível de transições espúrias. Praticamente imperceptível pelo usuário.</td>
+                  <td><span class="badge badge-success">Bom para alta velocidade</span></td>
+                </tr>
+                <tr style="background-color: rgba(16, 185, 129, 0.08);">
+                  <td><strong>5</strong></td>
+                  <td><strong>200 ms</strong></td>
+                  <td>400 ms</td>
+                  <td><strong>Ponto de Equilíbrio Ótimo:</strong> Máxima estabilização de pegada dentro do limiar de 200 ms.</td>
+                  <td><span class="badge badge-success"><strong>Padrão Recomendado</strong></span></td>
+                </tr>
+                <tr>
+                  <td><strong>7</strong></td>
+                  <td>300 ms</td>
+                  <td>500 ms</td>
+                  <td>Pegada ultrassólida; ligeiro retardo notado apenas em sequências rápidas de troca.</td>
+                  <td><span class="badge badge-neutral">Adequado para pegadas fixas</span></td>
+                </tr>
+                <tr>
+                  <td><strong>9</strong></td>
+                  <td>400 ms</td>
+                  <td>600 ms</td>
+                  <td>Ganhos de acurácia saturam; atraso ultrapassa a barreira ergonômica de 300 ms.</td>
+                  <td><span class="badge badge-warning">Atraso perceptível</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card: Implementação C99 no Firmware ESP32-S3 -->
+        <div class="card">
+          <h3 class="card-title">Código C99 para a Task do FreeRTOS (Core 1) no ESP32-S3</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            Implementação de zero-alocação dinâmica compatível com o firmware de classificação do Core 1:
+          </p>
+          <pre style="background-color: #0f172a; color: #f8fafc; padding: 1.25rem; border-radius: var(--border-radius); overflow-x: auto; font-size: 0.85rem; line-height: 1.5;"><code>#define SMOOTHING_K 5
+
+typedef struct {
+    uint8_t buffer[SMOOTHING_K];
+    uint8_t head;
+    uint8_t count;
+    uint8_t last_output;
+} CausalMajorityFilter;
+
+void filter_reset(CausalMajorityFilter *f) {
+    f->head = 0;
+    f->count = 0;
+    f->last_output = 0;
+}
+
+uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
+    f->buffer[f->head] = raw_pred;
+    f->head = (f->head + 1) % SMOOTHING_K;
+    if (f->count &lt; SMOOTHING_K) f->count++;
+
+    // Contagem de votos na janela deslizante (50 classes)
+    uint8_t freq[50] = {0};
+    uint8_t max_votes = 0;
+    for (uint8_t i = 0; i &lt; f->count; i++) {
+        uint8_t c = f->buffer[i];
+        freq[c]++;
+        if (freq[c] &gt; max_votes) max_votes = freq[c];
+    }
+
+    // Desempate por histerese/persistência (evita vibração de motor)
+    if (f->count &gt; 1 &amp;&amp; freq[f->last_output] == max_votes) {
+        return f->last_output;
+    }
+    // Desempate por recência (última decisão mais recente)
+    for (int8_t i = f->count - 1; i &gt;= 0; i--) {
+        uint8_t idx = (f->head - 1 - i + SMOOTHING_K) % SMOOTHING_K;
+        if (freq[f->buffer[idx]] == max_votes) {
+            f->last_output = f->buffer[idx];
+            return f->last_output;
+        }
+    }
+    f->last_output = raw_pred;
+    return raw_pred;
+}</code></pre>
+        </div>
+
+        <!-- Card: Passo 2 - M12 Spatial-Temporal Circular CNN-2D -->
+        <div class="card" style="margin-top: 2rem; margin-bottom: 2rem; border-left: 4px solid var(--color-info, #0284c7);">
+          <span class="badge" style="background-color: #0284c7; color: white; margin-bottom: 0.5rem; display: inline-block;">Passo 2 &bull; Nova Arquitetura M12</span>
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">M12: Spatial-Temporal Circular CNN-2D (Geometria em Anel + Quadrantes Azimutais)</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            Na <code>CNN-1D</code> original (M02), os 12 eletrodos são misturados indiscriminadamente na primeira camada convolucional, destruindo a topologia espacial da musculatura do antebraço. No protocolo <strong>NinaPro DB2</strong>, os 8 primeiros eletrodos formam um <strong>anel circunferencial fechado</strong> ao redor do antebraço (<code>Ch 7 &harr; Ch 0</code>), enquanto os eletrodos 9 a 12 são posicionados anatomicamente (FDS, EDC, Bíceps, Tríceps).
+          </p>
+          <div class="grid-3" style="margin-bottom: 1.5rem;">
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">Padding Espacial Circular</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Envolve o eletrodo 7 sobre o eletrodo 0 antes da convolução 2D (3&times;9), capturando a propagação transversal de MUAPs em torno do anel muscular.</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">Retenção de 4 Quadrantes</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Em vez de colapsar todos os eletrodos num único GAP global, preserva 4 setores espaciais (flexores vs. extensores vs. radial vs. ulnar) + ramo anatômico.</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-success); display: block; margin-bottom: 0.25rem;">BatchNorm Folding INT8</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Funde <code>Conv + BatchNorm</code> antes da quantização Q24/INT8, mantendo queda de apenas <strong>0,58%</strong> (FP32 &rarr; INT8) com <strong>14.750 parâmetros</strong> (&le; 15k).</span>
+            </div>
+          </div>
+
+          <h4 style="font-size: 1rem; color: var(--color-text-dark); margin-bottom: 0.75rem;">Benchmarks M12 (Quantização INT8 + Passo 1: Votação Majoritária &amp; Soft Voting)</h4>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Canais</th>
+                  <th>FP32 Raw</th>
+                  <th>INT8 Raw ($K=1$)</th>
+                  <th>INT8 + MV ($K=5$)</th>
+                  <th>INT8 + Soft ($K=5$, 200ms)</th>
+                  <th>INT8 + Soft ($K=9$, 400ms)</th>
+                  <th>Parâmetros</th>
+                  <th>Flash / SRAM</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>IRC / IEE ($K=5$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background-color: rgba(2, 132, 199, 0.06);">
+                  <td><strong>NinaPro DB2 (50 cls)</strong></td>
+                  <td><strong>12 CH</strong></td>
+                  <td>58.94%</td>
+                  <td>58.36% <small>(-0.58%)</small></td>
+                  <td>60.50%</td>
+                  <td><strong>61.61%</strong> <small>(+3.25%)</small></td>
+                  <td><strong>63.42%</strong> <small>(+5.06%)</small></td>
+                  <td>14.750</td>
+                  <td>14.74 KB / 30.91 KB</td>
+                  <td>1.249 ms</td>
+                  <td>2.422 / 10.945</td>
+                </tr>
+                <tr>
+                  <td>NinaPro DB2 (50 cls)</td>
+                  <td>2 CH</td>
+                  <td>40.00%</td>
+                  <td>39.74% <small>(-0.26%)</small></td>
+                  <td>40.42%</td>
+                  <td>40.79%</td>
+                  <td>41.42%</td>
+                  <td>3.442</td>
+                  <td>3.61 KB / 4.93 KB</td>
+                  <td>0.074 ms</td>
+                  <td>27.359 / 265.790</td>
+                </tr>
+                <tr style="background-color: rgba(13, 148, 136, 0.06);">
+                  <td><strong>Ozdemir (10 cls)</strong></td>
+                  <td><strong>4 CH</strong></td>
+                  <td>79.06%</td>
+                  <td>78.76% <small>(-0.30%)</small></td>
+                  <td>80.68%</td>
+                  <td><strong>81.07%</strong> <small>(+2.31%)</small></td>
+                  <td><strong>82.52%</strong> <small>(MV: 82.95%)</small></td>
+                  <td>5.850</td>
+                  <td>5.85 KB / 15.17 KB</td>
+                  <td>0.590 ms</td>
+                  <td>1.368 / 7.801</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (10 cls)</td>
+                  <td>2 CH</td>
+                  <td>63.42%</td>
+                  <td>62.52% <small>(-0.90%)</small></td>
+                  <td>64.66%</td>
+                  <td>66.15%</td>
+                  <td>67.48%</td>
+                  <td>2.042</td>
+                  <td>2.13 KB / 4.93 KB</td>
+                  <td>0.073 ms</td>
+                  <td>8.876 / 86.228</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="card-text" style="margin-top: 1rem; font-size: 0.9rem; color: var(--color-text-muted);">
+            <strong>Nota sobre Soft Voting em TinyML:</strong> A acumulação temporal de <em>logits</em> inteiros (<code>int32_t sum[50]</code>) antes do <code>argmax</code> superou a votação discreta (<strong>61,61% vs. 60,50%</strong> em $K=5$, com ganho de <strong>+4,82%</strong> no Macro F1 para 56,95%), exigindo apenas 200 bytes adicionais na SRAM do ESP32-S3.
+          </p>
+        </div>
+
+        <!-- Card: Passo 3 - M13 SupCon Circular CNN-2D -->
+        <div class="card" style="margin-top: 2rem; margin-bottom: 2rem; border-left: 4px solid #059669;">
+          <span class="badge" style="background-color: #059669; color: white; margin-bottom: 0.5rem; display: inline-block;">Passo 3 &bull; Recorde Geral M13 (Custo Zero na Inferência)</span>
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">M13: Supervised Contrastive Circular CNN-2D (SupCon Balanceado + Protótipos)</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            No protocolo NinaPro DB2, a classe de repouso (<code>REST</code>) representa <strong>36,3%</strong> de todas as janelas de treino (~28&times; maior que cada gesto ativo). O treinamento clássico por <em>Cross-Entropy</em> sofre colapso de margem entre os 49 gestos ativos e degrada sob ruído entre repetições. O <strong>M13</strong> resolve isso no host em duas etapas e <strong>descarta a cabeça contrastiva antes de exportar para o ESP32-S3</strong>:
+          </p>
+          <div class="grid-3" style="margin-bottom: 1.5rem;">
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #059669; display: block; margin-bottom: 0.25rem;">Stage 1: SupCon Balanceado</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Treina com duas vistas fisiológicas por janela ($\tau=0,10$) ponderando âncoras inversamente à frequência no lote para proteger os 49 gestos contra o domínio do <code>REST</code>.</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #059669; display: block; margin-bottom: 0.25rem;">Stage 2: Protótipos L2 + LDA</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Inicializa a cabeça linear pelos centróides L2-normalizados dos clusters contrastivos e refina ponta-a-ponta com <em>Label Smoothing</em> (0,05).</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-primary); display: block; margin-bottom: 0.25rem;">Queda INT8 de Apenas 0,08%</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Clusters contrastivos mais compactos reduzem a queda de quantização FP32 &rarr; INT8 de 0,58% para <strong>0,08%</strong> (NinaPro 12CH), mantendo idênticos 14.750 parâmetros.</span>
+            </div>
+          </div>
+
+          <h4 style="font-size: 1rem; color: var(--color-text-dark); margin-bottom: 0.75rem;">Benchmarks M13 SupCon (INT8 + Passo 1: Votação Majoritária &amp; Soft Voting)</h4>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Canais</th>
+                  <th>FP32 Raw</th>
+                  <th>INT8 Raw ($K=1$)</th>
+                  <th>INT8 + MV ($K=5$)</th>
+                  <th>INT8 + Soft ($K=5$, 200ms)</th>
+                  <th>INT8 + Soft ($K=9$, 400ms)</th>
+                  <th>Macro F1 ($K=5$)</th>
+                  <th>Latência / Flash</th>
+                  <th>IRC / IEE ($K=5$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background-color: rgba(5, 150, 105, 0.08);">
+                  <td><strong>NinaPro DB2 (50 cls)</strong></td>
+                  <td><strong>12 CH</strong></td>
+                  <td>59.27%</td>
+                  <td><strong>59.19%</strong> <small>(-0.08%)</small></td>
+                  <td>61.19%</td>
+                  <td><strong>62.08%</strong> <small>(+2.89%)</small></td>
+                  <td><strong>63.57%</strong> <small>(+4.38%)</small></td>
+                  <td><strong>57.65%</strong></td>
+                  <td>1.249 ms / 14.74 KB</td>
+                  <td>2.485 / 11.231</td>
+                </tr>
+                <tr>
+                  <td>NinaPro DB2 (50 cls)</td>
+                  <td>2 CH</td>
+                  <td>39.91%</td>
+                  <td>39.90% <small>(-0.01%)</small></td>
+                  <td>40.71%</td>
+                  <td>41.13%</td>
+                  <td>42.00%</td>
+                  <td>18.74%</td>
+                  <td>0.074 ms / 3.61 KB</td>
+                  <td>27.840 / 270.458</td>
+                </tr>
+                <tr style="background-color: rgba(13, 148, 136, 0.06);">
+                  <td><strong>Ozdemir (10 cls)</strong></td>
+                  <td><strong>4 CH</strong></td>
+                  <td>78.59%</td>
+                  <td>78.68% <small>(+0.09%)</small></td>
+                  <td><strong>81.15%</strong></td>
+                  <td><strong>81.11%</strong> <small>(+2.43%)</small></td>
+                  <td><strong>81.79%</strong> <small>(MV: 82.01%)</small></td>
+                  <td><strong>80.97%</strong></td>
+                  <td>0.590 ms / 5.85 KB</td>
+                  <td>1.376 / 7.843</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (10 cls)</td>
+                  <td>2 CH</td>
+                  <td>62.65%</td>
+                  <td>62.22% <small>(-0.43%)</small></td>
+                  <td>63.89%</td>
+                  <td>65.34%</td>
+                  <td>66.92%</td>
+                  <td>64.34%</td>
+                  <td>0.073 ms / 2.13 KB</td>
+                  <td>8.969 / 87.134</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card: Passo 4 - M14 Extração Rica 636 Features + SupCon Residual MLP INT8 -->
+        <div class="card" style="margin-top: 2rem; margin-bottom: 2rem; border-left: 4px solid #db2777;">
+          <span class="badge" style="background-color: #db2777; color: white; margin-bottom: 0.5rem; display: inline-block;">Passo 4 &bull; Novo Recorde Absoluto (71,06% NinaPro | 80,77% em 2 Canais!)</span>
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">M14: Extração Multi-Domínio (636 Features) + SupCon Residual MLP INT8</h3>
+          <p class="card-text" style="margin-bottom: 1rem;">
+            As 5 features clássicas de Hudgins (60 dimensões em 12CH) comprimem demais o sinal neuromuscular para separar 50 gestos distintos. O <strong>Passo 4 (M14)</strong> expande a representação para <strong>636 features fisiológicas determinísticas</strong> por janela de 200 ms, treinadas com SupCon balanceado sobre uma MLP Residual INT8 (<code>636 &rarr; 192 &rarr; 128 &rarr; 50 + skip LDA</code>) — sendo <strong>3&times; mais rápida e usando 4&times; menos SRAM</strong> que a CNN-2D no ESP32-S3:
+          </p>
+          <div class="grid-3" style="margin-bottom: 1.5rem;">
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #db2777; display: block; margin-bottom: 0.25rem;">Domínio Tempo, HOS &amp; AR-4 (18/ch)</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Log-RMS, MFL, DASDV, WAMP, Form/Crest Factor, Hjorth (Mobilidade/Complexidade), Assimetria, Curtose e polos Auto-Regressivos <strong>AR-4</strong> (Yule-Walker).</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: #db2777; display: block; margin-bottom: 0.25rem;">Espectro, EMGCC, Haar &amp; Envelope (24/ch)</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">5 sub-bandas PSD (20–500 Hz), MNF, Entropia Espectral, 4 Cepstros EMGCC, <strong>Wavelet Haar 4 níveis</strong> e dinâmica em 4 sub-janelas de 50 ms.</span>
+            </div>
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--color-primary); display: block; margin-bottom: 0.25rem;">Sinergia Inter-Canais (132 dims)</strong>
+              <span style="font-size: 0.85rem; color: var(--color-text-muted);">Matriz completa com <strong>66 correlações cruzadas</strong> de Pearson + <strong>66 razões Log-RMS</strong> par-a-par invariantes à força de contração.</span>
+            </div>
+          </div>
+
+          <h4 style="font-size: 1rem; color: var(--color-text-dark); margin-bottom: 0.75rem;">Benchmarks M14: Enhanced-LDA vs. M14 SupCon MLP INT8 (+ Passo 1)</h4>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Canais</th>
+                  <th>Feats</th>
+                  <th>Enh-LDA Raw</th>
+                  <th>M14 FP32</th>
+                  <th>M14 INT8 ($K=1$)</th>
+                  <th>M14 + MV ($K=5$)</th>
+                  <th>M14 + Soft ($K=5$, 200ms)</th>
+                  <th>M14 + Soft ($K=9$, 400ms)</th>
+                  <th>Macro F1 ($K=5$)</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Flash / SRAM</th>
+                  <th>IRC / IEE ($K=5$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background-color: rgba(219, 39, 119, 0.08);">
+                  <td><strong>NinaPro DB2 (50 cls)</strong></td>
+                  <td><strong>12 CH</strong></td>
+                  <td>636</td>
+                  <td>54.59%</td>
+                  <td>64.35%</td>
+                  <td><strong>63.06%</strong></td>
+                  <td>67.65%</td>
+                  <td><strong>68.59%</strong> <small>(+5.53%)</small></td>
+                  <td><strong>71.06%</strong> <small>(+8.00%)</small></td>
+                  <td><strong>65.81%</strong></td>
+                  <td><strong>0.425 ms</strong></td>
+                  <td>182.0 KB / 7.6 KB</td>
+                  <td>8.076 / 61.657</td>
+                </tr>
+                <tr>
+                  <td>NinaPro DB2 (50 cls)</td>
+                  <td>2 CH</td>
+                  <td>86</td>
+                  <td>25.46%</td>
+                  <td>45.46%</td>
+                  <td><strong>45.10%</strong></td>
+                  <td>47.58%</td>
+                  <td><strong>48.62%</strong></td>
+                  <td><strong>50.94%</strong></td>
+                  <td>33.42%</td>
+                  <td>0.062 ms</td>
+                  <td>22.2 KB / 3.0 KB</td>
+                  <td>38.943 / 546.084</td>
+                </tr>
+                <tr style="background-color: rgba(13, 148, 136, 0.06);">
+                  <td><strong>Ozdemir (10 cls)</strong></td>
+                  <td><strong>4 CH</strong></td>
+                  <td>180</td>
+                  <td><strong>84.27%</strong></td>
+                  <td>80.90%</td>
+                  <td>79.53%</td>
+                  <td>81.03%</td>
+                  <td><strong>82.01%</strong></td>
+                  <td><strong>82.14%</strong></td>
+                  <td><strong>81.53%</strong></td>
+                  <td>0.118 ms</td>
+                  <td>33.7 KB / 3.9 KB</td>
+                  <td>6.955 / 78.853</td>
+                </tr>
+                <tr style="background-color: rgba(16, 185, 129, 0.08);">
+                  <td><strong>Ozdemir (10 cls)</strong></td>
+                  <td><strong>2 CH</strong></td>
+                  <td>86</td>
+                  <td><strong>76.84%</strong></td>
+                  <td>74.79%</td>
+                  <td>74.19%</td>
+                  <td>77.95%</td>
+                  <td><strong>79.19%</strong></td>
+                  <td><strong>80.77%</strong></td>
+                  <td><strong>78.76%</strong></td>
+                  <td>0.057 ms</td>
+                  <td>14.5 KB / 3.0 KB</td>
+                  <td>13.978 / 196.934</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="card-text" style="margin-top: 1rem; font-size: 0.9rem; color: var(--color-text-muted);">
+            <strong>Salto de Eficiência &amp; Redução de Eletrodos:</strong> No cenário extremo de apenas <strong>2 canais</strong>, o <strong>M14</strong> superou a CNN-1D em <strong>+14,6%</strong> no Ozdemir (atingindo <strong>80,77%</strong> em $K=9$) e em <strong>+7,9%</strong> no NinaPro DB2 (<strong>48,62%</strong> em $K=5$ e <strong>50,94%</strong> em $K=9$). No NinaPro 12CH, o Macro F1 saltou de 52,1% (M12) para <strong>65,81%</strong> com apenas 7,6 KB de arena SRAM.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. FUNDAMENTAÇÃO ARQUITETURAL: O QUE É CADA MODELO E POR QUE UNIR
+         ==================================================================== -->
+    <section id="teoria-modelos" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">3. Fundamentação Arquitetural e Hipóteses de Projeto</h2>
+          <p class="section-lead">
+            O que é a arquitetura de cada modelo, por que foram escolhidos em sua forma original e por que foram combinados em arquiteturas híbridas para o benchmark.
+          </p>
+        </div>
+
+        <!-- Conceito Central: Por que Híbridos? -->
+        <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--color-primary);">
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">O Princípio da Complementaridade em TinyML (Por que Unir Modelos?)</h3>
+          <p class="card-text">
+            Em sistemas embarcados neuromusculares, existe o teorema "No Free Lunch":
+            <strong>Nenhum classificador puro consegue ser simultaneamente o mais rápido, o mais preciso, o mais tolerante a variações temporais e o mais leve na bateria.</strong>
+          </p>
+          <ul class="card-list">
+            <li><strong>Modelos Lineares (Micro-LDA):</strong> Têm latência desprezível (1 µs) e quase zero consumo de RAM (200 bytes), mas sofrem com <em>crosstalk</em> em gestos não-lineares.</li>
+            <li><strong>Redes Neurais (CNN-1D):</strong> Extraem representações morfológicas profundas e separam classes densas, mas consomem 100&times; mais energia e sofrem colapso sob quantizações agressivas de 8 bits.</li>
+            <li><strong>Alinhamento Temporal (DTW):</strong> Absorve a variação elástica natural na cadência das contrações musculares, mas sua complexidade tradicional quadrática $\mathcal{O}(N^2)$ estoura a SRAM do microcontrolador.</li>
+          </ul>
+          <p class="card-text" style="margin-top: 0.75rem;">
+            <strong>A Solução Híbrida:</strong> Em vez de forçar um único modelo a resolver todo o sinal, unimos algoritmos complementares em cascatas condicionais com <em>Early Exit</em>, podas assintóticas restritivas e decomposição hierárquica <em>Coarse-to-Fine</em>, atingindo o pico de acurácia com consumo de energia mínimo.
+          </p>
+        </div>
+
+        <!-- Grid de Cartões Arquiteturais dos 11 Modelos -->
+        <div class="grid-2">
+
+          <!-- M01: Micro-LDA Q7 -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M01: Micro-LDA Q7</span>
+              <span class="arch-badge-orig">Baseline Puro</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Classificador linear baseado na Análise Discriminante Canônica com matriz de covariância combinada e pesos inteiros calibrados em ponto fixo Q7 ($\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$). Ocupa apenas 200 bytes de Flash e executa em menos de 284 ciclos de clock.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi escolhido originalmente:</h4>
+              <p class="arch-section-text">
+                É o padrão-ouro clássico na literatura de próteses mioelétricas. Oferece a menor latência possível (1.2 µs no ESP32-S3), garantindo resposta imperceptível e maior IRC (686.361).
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Papel na Arquitetura Híbrida:</h4>
+              <p class="arch-section-text">
+                Atua como "porteiro rápido" (Gatekeeper) de primeiro nível nas cascatas M07 e M11. Quando a separabilidade do gesto é evidente (alta margem), ele resolve a predição instantaneamente sem ligar os motores neurais mais pesados.
+              </p>
+            </div>
+          </article>
+
+          <!-- M02: CNN-1D INT8 -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M02: CNN-1D INT8</span>
+              <span class="arch-badge-orig">Baseline Puro</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Rede neural convolucional temporal com 2 camadas convolucionais 1D (filtros 7 e 5), MaxPool, concatenação de features analíticas de Hudgins no gargalo e camada linear densa, quantizada simetricamente em INT8 pós-treino.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi escolhido originalmente:</h4>
+              <p class="arch-section-text">
+                Capacidade de capturar correlações espaço-temporais e micro-variações musculares sem depender exclusivamente de características projetadas manualmente, alcançando 58.62% no NinaPro DB2.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Papel na Arquitetura Híbrida:</h4>
+              <p class="arch-section-text">
+                Fornece poder de desempate de alta capacidade não-linear. Nos modelos M06, M07, M09 e M11, a CNN só é acionada nas janelas de alta ambiguidade ou refinamento fino, eliminando o desperdício de energia em movimentos simples.
+              </p>
+            </div>
+          </article>
+
+          <!-- M03/M04/M05: Família DTW -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M03–M05: Família DTW Assintótico</span>
+              <span class="arch-badge-orig">Baseline de Alinhamento</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Classificador 1-Nearest Neighbor baseado no Dynamic Time Warping sobre envelopes RMS. <strong>M03</strong> é o clássico quadrático $\mathcal{O}(N^2)$, <strong>M04</strong> restringe a janela via Sakoe-Chiba $\mathcal{O}(wN)$ e <strong>M05</strong> aplica a cota inferior matemática <code>LB_Keogh</code> $\mathcal{O}(N)$ com buffer circular de 2 linhas.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi escolhido originalmente:</h4>
+              <p class="arch-section-text">
+                O sinal sEMG sofre de elasticidade temporal: usuários realizam o mesmo gesto com velocidades diferentes. O DTW alinha deformações não-lineares no eixo do tempo onde a distância Euclidiana falha.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Papel na Arquitetura Híbrida:</h4>
+              <p class="arch-section-text">
+                Graças à poda exata LB-Keogh (que descarta 95% das hipóteses sem calcular o warping completo), o DTW atua no M08 e M09 como pré-filtro ultrarrápido de templates para restringir as classes candidatas.
+              </p>
+            </div>
+          </article>
+
+          <!-- M06: Híbrido Head Fusion -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M06: Híbrido LDA + CNN Head Fusion</span>
+              <span class="arch-badge-hyb">Arquitetura Híbrida 1</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Fusão precoce de representações: os discriminantes lineares computados pelo LDA e os mapas de ativação temporal da CNN-1D são concatenados diretamente na cabeça densa de decisão final.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que unir nessa abordagem:</h4>
+              <p class="arch-section-text">
+                Testar se a projeção de máxima variância entre-classes do LDA ajuda a regularizar o gradiente denso da CNN, evitando que a rede se perca em ruído de alta frequência.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Alcançou 81.79% no Ozdemir, mas mantém a latência da CNN (0.35 ms) pois exige a execução de ambos os modelos em todas as janelas.
+              </p>
+            </div>
+          </article>
+
+          <!-- M07: Cascata Early-Exit -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M07: Híbrido LDA + CNN Cascade (Early Exit)</span>
+              <span class="arch-badge-hyb">Arquitetura Híbrida 2</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Cascata hierárquica sequencial com saída antecipada calibrada por margem de Pareto: $\Delta_{\text{margin}} = P_{\text{top1}} - P_{\text{top2}} \ge \theta$.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que unir nessa abordagem:</h4>
+              <p class="arch-section-text">
+                Eliminar o custo desnecessário de inferência profunda. Se o Micro-LDA já tem alta certeza do gesto, encerra em 2 µs. Apenas quando há dúvida razoável a CNN-1D é ativada.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Atingiu o <strong>pico de acurácia de 82.69% no Ozdemir</strong> com 57.6% das janelas resolvidas no Early Exit, cortando o consumo energético em mais de 50%.
+              </p>
+            </div>
+          </article>
+
+          <!-- M08: Híbrido DTW + LDA -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M08: Híbrido DTW + LDA (Top-M Filter)</span>
+              <span class="arch-badge-hyb">Arquitetura Híbrida 3</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Filtro em duas etapas: o classificador DTW LB-Keogh elimina rapidamente as classes distantes e seleciona o subconjunto das 5 hipóteses mais prováveis ($M=5$). O LDA toma a decisão final dentro desse subespaço.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que unir nessa abordagem:</h4>
+              <p class="arch-section-text">
+                Reduzir a complexidade do LDA de 50 para 5 classes por janela, combinando a robustez temporal do warping com a velocidade analítica da projeção linear.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Latência extremamente baixa (0.0385 ms) com excelente acurácia de 81.32% no Ozdemir e IRC de 64.423 no NinaPro.
+              </p>
+            </div>
+          </article>
+
+          <!-- M09: Híbrido DTW + CNN-1D -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M09: Híbrido DTW + CNN-1D INT8</span>
+              <span class="arch-badge-hyb">Arquitetura Híbrida 4</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                O DTW LB-Keogh atua como filtro restritivo de classes candidatas antes da camada convolucional, restringindo a saída densa da CNN apenas às 5 classes selecionadas.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que unir nessa abordagem:</h4>
+              <p class="arch-section-text">
+                Evitar a confusão do softmax em 50 saídas simultâneas, permitindo que a CNN concentre seus neurônios na discriminação fina entre gestos muito parecidos.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Atingiu a **maior acurácia bruta no NinaPro DB2 (59.73%)**, comprovando a eficácia da redução do espaço de busca antes da convolução.
+              </p>
+            </div>
+          </article>
+
+          <!-- M10: Tri-Híbrido -->
+          <article class="arch-card">
+            <div class="arch-header">
+              <span class="arch-id">M10: Tri-Híbrido DTW + LDA + CNN</span>
+              <span class="arch-badge-hyb">Arquitetura Híbrida 5</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Arquitetura tripartite integrada: Tier 1 (Early Exit via LDA em 2 µs) &rarr; Tier 2 (Poda assintótica de templates via DTW LB-Keogh) &rarr; Tier 3 (Decisão neural profunda via CNN-1D).
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que unir nessa abordagem:</h4>
+              <p class="arch-section-text">
+                Integrar todas as vantagens conhecidas na literatura: quase metade das janelas sai em microssegundos pelo LDA, e as janelas difíceis passam pelo filtro elástico do DTW antes da CNN.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Atingiu a **maior acurácia do estudo no Ozdemir et al. (82.78%)** com Early Exit de 49.2% e consumo de 0.032 mJ.
+              </p>
+            </div>
+          </article>
+
+          <!-- M11: Hierárquico Coarse-to-Fine -->
+          <article class="arch-card" style="border: 2px solid var(--color-primary);">
+            <div class="arch-header">
+              <span class="arch-id">M11: Hierárquico Coarse-to-Fine (&tau; = 0.80)</span>
+              <span class="arch-badge-hyb">Arquitetura Proposta Principal</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Desacoplamento taxonômico em dois níveis: o <strong>Macro-LDA</strong> classifica o grupo funcional em 2 µs (Repouso, Punho, Preensões Finas ou Força). Se a confiança for &ge; 80%, resolve via <strong>Sub-LDA</strong> instantâneo. Se houver dúvida ou o gesto for de preensão fina intrínseca, ativa uma <strong>CNN especialista de 23 classes</strong>.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi criada e unida:</h4>
+              <p class="arch-section-text">
+                Resolver a causa-raiz da baixa acurácia do NinaPro DB2: o <em>crosstalk</em> entre músculos profundos de dedos e músculos fortes de punho. Separar esses grupos no primeiro estágio permite que a CNN foque exclusivamente nas 23 pinças finas.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Empata com a CNN completa (<strong>57.96% vs 58.62%</strong>), mas com <strong>69.0% das inferências resolvidas no Fast Path</strong> (latência de 0.099 ms e economia de 57% de energia). Sob quantização agressiva em <code>int8</code>, reteve 51.64% enquanto a CNN pura colapsou para 9.86%.
+              </p>
+            </div>
+          </article>
+
+          <!-- M12: Spatial-Temporal Circular CNN-2D -->
+          <article class="arch-card" style="border: 2px solid #0284c7;">
+            <div class="arch-header">
+              <span class="arch-id">M12: Circular CNN-2D Espacial</span>
+              <span class="arch-badge-dl">Passo 2 &bull; Topologia em Anel</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Rede convolucional 2D que trata os 8 eletrodos circunferenciais do antebraço como um anel fechado via <em>circular padding</em> (<code>Ch 7 &harr; Ch 0</code>), retém 4 quadrantes azimutais (flexores/extensores) e processa os 4 eletrodos anatômicos num ramo dedicado.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi criada:</h4>
+              <p class="arch-section-text">
+                Superar a mistura indiscriminada de canais da CNN-1D original, capturando propagação transversal de MUAPs ao redor do antebraço com <em>BatchNorm folding</em> INT8 sem custo adicional no ESP32-S3.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Com <strong>14.750 parâmetros</strong> e 1,249 ms no ESP32-S3, atingiu <strong>61,61%</strong> ($K=5$) e <strong>63,42%</strong> ($K=9$) no NinaPro DB2 12CH (queda INT8 de apenas 0,58%).
+              </p>
+            </div>
+          </article>
+
+          <!-- M13: SupCon Circular CNN-2D -->
+          <article class="arch-card" style="border: 2px solid #059669;">
+            <div class="arch-header">
+              <span class="arch-id">M13: SupCon Circular CNN-2D</span>
+              <span class="arch-badge-dl">Passo 3 &bull; Custo Zero na Inferência</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Treinamento em 2 estágios com <em>Supervised Contrastive Learning</em> balanceado por frequência inversa no lote (para conter o domínio de 36,3% do repouso) + inicialização da cabeça por centróides L2. A cabeça contrastiva é descartada antes da exportação.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi criada:</h4>
+              <p class="arch-section-text">
+                Evitar o colapso de margem entre os 49 gestos ativos na <em>Cross-Entropy</em> padrão e blindar a fronteira de decisão contra o ruído de quantização INT8.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Queda de quantização FP32 &rarr; INT8 reduzida para <strong>0,08%</strong> (NinaPro 12CH) e <strong>0,01%</strong> (2CH), atingindo <strong>62,08%</strong> ($K=5$) e <strong>63,57%</strong> ($K=9$) com idênticos 14.750 parâmetros do M12.
+              </p>
+            </div>
+          </article>
+
+          <!-- M14: 636 Features + SupCon Residual MLP INT8 -->
+          <article class="arch-card" style="border: 2px solid #db2777;">
+            <div class="arch-header">
+              <span class="arch-id">M14: 636 Features + SupCon MLP INT8</span>
+              <span class="arch-badge-hyb">Passo 4 &bull; Recorde Geral</span>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">O que é a Arquitetura:</h4>
+              <p class="arch-section-text">
+                Extrator multi-domínio determinístico de <strong>636 features</strong> (TD não-linear, Hjorth, HOS, AR-4, 5 bandas espectrais, 4 cepstros EMGCC, Wavelet Haar 4 níveis, envelope em sub-janelas e 132 sinergias inter-canais) acoplado a uma MLP Residual SupCon (<code>636 &rarr; 192 &rarr; 128 &rarr; 50 + skip LDA</code>) em INT8.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Por que foi criada:</h4>
+              <p class="arch-section-text">
+                Substituir as 60 features Hudgins comprimidas por uma assinatura neuromuscular completa, mantendo a execução 3&times; mais rápida e 4&times; menor em SRAM que redes 2D no ESP32-S3.
+              </p>
+            </div>
+            <div>
+              <h4 class="arch-section-subtitle">Resultado no Benchmark:</h4>
+              <p class="arch-section-text">
+                Quebrou a barreira dos 70% no NinaPro DB2 (<strong>68,59%</strong> em $K=5$ e <strong>71,06%</strong> em $K=9$, Macro F1 de <strong>65,81%</strong>) e atingiu <strong>80,77%</strong> no Ozdemir usando apenas <strong>2 canais</strong>, em 0,425 ms e 7,6 KB de SRAM.
+              </p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         3. TABELA SEPARADA COM BENCHMARKS DETALHADOS POR MODELO
+         ==================================================================== -->
+    <section id="modelos" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">4. Benchmarks Detalhados Separados por Modelo</h2>
+          <p class="section-lead">Tabelas analíticas detalhando métricas de cada família de arquitetura sob diferentes canais e quantizações.</p>
+        </div>
+
+        <!-- Seletor de Abas por Família de Modelo -->
+        <div class="model-tabs">
+          <button class="model-tab-btn active" data-target="m14">M14: 636 Features + SupCon MLP</button>
+          <button class="model-tab-btn" data-target="m12m13">M12–M13: CNN-2D Circular &amp; SupCon</button>
+          <button class="model-tab-btn" data-target="m11">M11: Hierárquico Coarse-to-Fine</button>
+          <button class="model-tab-btn" data-target="m01">M01: Micro-LDA Q7</button>
+          <button class="model-tab-btn" data-target="m02">M02: CNN-1D INT8</button>
+          <button class="model-tab-btn" data-target="dtw">M03–M05: Família DTW</button>
+          <button class="model-tab-btn" data-target="hibridos">M06–M10: Híbridos &amp; Cascatas</button>
+        </div>
+
+        <!-- Painel M14: Feature-Rich SupCon MLP INT8 -->
+        <div id="panel-m14" class="model-tab-panel active">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset / Canais</th>
+                  <th>Features</th>
+                  <th>Enh-LDA Raw</th>
+                  <th>M14 FP32</th>
+                  <th>M14 INT8 ($K=1$)</th>
+                  <th>M14 + Soft ($K=5$)</th>
+                  <th>M14 + Soft ($K=9$)</th>
+                  <th>Macro F1 ($K=5$)</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Flash / SRAM</th>
+                  <th>IRC / IEE ($K=5$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background-color: rgba(219, 39, 119, 0.06);">
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td>636</td>
+                  <td>54.59%</td>
+                  <td>64.35%</td>
+                  <td><strong>63.06%</strong></td>
+                  <td><strong>68.59%</strong></td>
+                  <td><strong>71.06%</strong></td>
+                  <td><strong>65.81%</strong></td>
+                  <td>0.4247 ms</td>
+                  <td>182.0 KB / 7.6 KB</td>
+                  <td>8,075.8 / 61,656.6</td>
+                </tr>
+                <tr>
+                  <td>NinaPro DB2 (2CH, 50cl)</td>
+                  <td>86</td>
+                  <td>25.46%</td>
+                  <td>45.46%</td>
+                  <td>45.10%</td>
+                  <td>48.62%</td>
+                  <td>50.94%</td>
+                  <td>33.42%</td>
+                  <td>0.0624 ms</td>
+                  <td>22.2 KB / 3.0 KB</td>
+                  <td>38,942.7 / 546,083.9</td>
+                </tr>
+                <tr style="background-color: rgba(13, 148, 136, 0.06);">
+                  <td><strong>Ozdemir (4CH, 10cl)</strong></td>
+                  <td>180</td>
+                  <td><strong>84.27%</strong></td>
+                  <td>80.90%</td>
+                  <td>79.53%</td>
+                  <td><strong>82.01%</strong></td>
+                  <td><strong>82.14%</strong></td>
+                  <td><strong>81.53%</strong></td>
+                  <td>0.1179 ms</td>
+                  <td>33.7 KB / 3.9 KB</td>
+                  <td>6,954.7 / 78,853.0</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (2CH, 10cl)</td>
+                  <td>86</td>
+                  <td><strong>76.84%</strong></td>
+                  <td>74.79%</td>
+                  <td>74.19%</td>
+                  <td><strong>79.19%</strong></td>
+                  <td><strong>80.77%</strong></td>
+                  <td><strong>78.76%</strong></td>
+                  <td>0.0567 ms</td>
+                  <td>14.5 KB / 3.0 KB</td>
+                  <td>13,978.1 / 196,934.4</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel M12 & M13: Circular CNN-2D & SupCon -->
+        <div id="panel-m12m13" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Modelo</th>
+                  <th>Dataset / Canais</th>
+                  <th>FP32 Raw</th>
+                  <th>INT8 Raw ($K=1$)</th>
+                  <th>Queda INT8</th>
+                  <th>INT8 + Soft ($K=5$)</th>
+                  <th>INT8 + Soft ($K=9$)</th>
+                  <th>Macro F1 ($K=5$)</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Flash / SRAM</th>
+                  <th>IRC / IEE ($K=5$)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M12 (Circ CNN-2D)</strong></td>
+                  <td>NinaPro DB2 (12CH)</td>
+                  <td>58.94%</td>
+                  <td>58.36%</td>
+                  <td>0.58%</td>
+                  <td><strong>61.61%</strong></td>
+                  <td><strong>63.42%</strong></td>
+                  <td>56.95%</td>
+                  <td>1.2490 ms</td>
+                  <td>14.7 KB / 30.9 KB</td>
+                  <td>2,421.9 / 10,945.2</td>
+                </tr>
+                <tr style="background-color: rgba(5, 150, 105, 0.06);">
+                  <td><strong>M13 (SupCon CNN-2D)</strong></td>
+                  <td>NinaPro DB2 (12CH)</td>
+                  <td>59.27%</td>
+                  <td><strong>59.19%</strong></td>
+                  <td><strong>0.08%</strong></td>
+                  <td><strong>62.08%</strong></td>
+                  <td><strong>63.57%</strong></td>
+                  <td><strong>57.65%</strong></td>
+                  <td>1.2490 ms</td>
+                  <td>14.7 KB / 30.9 KB</td>
+                  <td>2,485.1 / 11,231.0</td>
+                </tr>
+                <tr>
+                  <td><strong>M12 (Circ CNN-2D)</strong></td>
+                  <td>Ozdemir (4CH)</td>
+                  <td>79.06%</td>
+                  <td>78.76%</td>
+                  <td>0.30%</td>
+                  <td>81.07%</td>
+                  <td>82.52%</td>
+                  <td>81.09%</td>
+                  <td>0.5897 ms</td>
+                  <td>5.8 KB / 15.2 KB</td>
+                  <td>1,368.2 / 7,801.2</td>
+                </tr>
+                <tr style="background-color: rgba(5, 150, 105, 0.06);">
+                  <td><strong>M13 (SupCon CNN-2D)</strong></td>
+                  <td>Ozdemir (4CH)</td>
+                  <td>78.59%</td>
+                  <td>78.68%</td>
+                  <td><strong>-0.09%</strong></td>
+                  <td><strong>81.11%</strong></td>
+                  <td>81.79%</td>
+                  <td>80.97%</td>
+                  <td>0.5897 ms</td>
+                  <td>5.8 KB / 15.2 KB</td>
+                  <td>1,375.5 / 7,842.8</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel M11: Hierárquico -->
+        <div id="panel-m11" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset / Canais</th>
+                  <th>Precisão</th>
+                  <th>Acurácia Top-1</th>
+                  <th>Fast Path (%)</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Ciclos CCOUNT</th>
+                  <th>Energia (mJ)</th>
+                  <th>SRAM Runtime</th>
+                  <th>IRC</th>
+                  <th>IEE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td><strong>57.96%</strong></td>
+                  <td>69.0%</td>
+                  <td>0.0994 ms</td>
+                  <td>23,860</td>
+                  <td>0.0148 mJ</td>
+                  <td>25.33 KB</td>
+                  <td><strong>29,208.5</strong></td>
+                  <td><strong>140,125.9</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>int8</code></td>
+                  <td><strong>51.64%</strong></td>
+                  <td>69.9%</td>
+                  <td>0.0994 ms</td>
+                  <td>23,860</td>
+                  <td>0.0148 mJ</td>
+                  <td>25.33 KB</td>
+                  <td><strong>25,975.8</strong></td>
+                  <td><strong>124,610.2</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (2CH, 50cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td>10.07%</td>
+                  <td>24.3%</td>
+                  <td>0.1057 ms</td>
+                  <td>25,363</td>
+                  <td>0.0157 mJ</td>
+                  <td>9.20 KB</td>
+                  <td><strong>4,781.0</strong></td>
+                  <td><strong>33,406.1</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (4CH, 10cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td>61.58%</td>
+                  <td>44.0%</td>
+                  <td>0.0988 ms</td>
+                  <td>23,701</td>
+                  <td>0.0147 mJ</td>
+                  <td>12.43 KB</td>
+                  <td><strong>6,201.2</strong></td>
+                  <td><strong>38,159.5</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (2CH, 10cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td>35.17%</td>
+                  <td>18.0%</td>
+                  <td>0.1148 ms</td>
+                  <td>27,540</td>
+                  <td>0.0170 mJ</td>
+                  <td>9.20 KB</td>
+                  <td><strong>3,046.3</strong></td>
+                  <td><strong>21,285.7</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel M01: Micro-LDA Q7 -->
+        <div id="panel-m01" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset / Canais</th>
+                  <th>Precisão</th>
+                  <th>Acurácia Top-1</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Ciclos CCOUNT</th>
+                  <th>Energia (mJ)</th>
+                  <th>SRAM Runtime</th>
+                  <th>IRC</th>
+                  <th>IEE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td>47.86%</td>
+                  <td>0.0050 ms</td>
+                  <td>1,202</td>
+                  <td>0.00074 mJ</td>
+                  <td>22.20 KB</td>
+                  <td><strong>469,671.4</strong></td>
+                  <td><strong>2,349,139.0</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>int8</code></td>
+                  <td>53.11%</td>
+                  <td>0.0050 ms</td>
+                  <td>1,202</td>
+                  <td>0.00074 mJ</td>
+                  <td>22.20 KB</td>
+                  <td><strong>531,100.0</strong></td>
+                  <td><strong>2,656,500.0</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (2CH, 50cl)</strong></td>
+                  <td><code>int16</code></td>
+                  <td>16.12%</td>
+                  <td>0.0015 ms</td>
+                  <td>360</td>
+                  <td>0.00022 mJ</td>
+                  <td>3.46 KB</td>
+                  <td><strong>547,964.0</strong></td>
+                  <td><strong>6,845,031.8</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (4CH, 10cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td><strong>82.31%</strong></td>
+                  <td>0.0012 ms</td>
+                  <td>284</td>
+                  <td>0.00018 mJ</td>
+                  <td>6.60 KB</td>
+                  <td><strong>686,361.8</strong></td>
+                  <td><strong>5,639,679.2</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (2CH, 10cl)</strong></td>
+                  <td><code>int16</code></td>
+                  <td>64.06%</td>
+                  <td>0.0007 ms</td>
+                  <td>160</td>
+                  <td>0.00010 mJ</td>
+                  <td>3.46 KB</td>
+                  <td><strong>960,416.8</strong></td>
+                  <td><strong>11,997,291.6</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel M02: CNN-1D INT8 -->
+        <div id="panel-m02" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset / Canais</th>
+                  <th>Precisão</th>
+                  <th>Acurácia Top-1</th>
+                  <th>Latência ESP32-S3</th>
+                  <th>Ciclos CCOUNT</th>
+                  <th>Energia (mJ)</th>
+                  <th>SRAM Runtime</th>
+                  <th>IRC</th>
+                  <th>IEE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td><strong>58.62%</strong></td>
+                  <td>0.3493 ms</td>
+                  <td>83,843</td>
+                  <td>0.05188 mJ</td>
+                  <td>26.81 KB</td>
+                  <td><strong>8,474.1</strong></td>
+                  <td><strong>39,952.8</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (12CH, 50cl)</strong></td>
+                  <td><code>int8</code></td>
+                  <td>9.86% <em>(colapso)</em></td>
+                  <td>0.3493 ms</td>
+                  <td>83,843</td>
+                  <td>0.05188 mJ</td>
+                  <td>26.81 KB</td>
+                  <td>1,411.4</td>
+                  <td>6,654.4</td>
+                </tr>
+                <tr>
+                  <td><strong>NinaPro DB2 (2CH, 50cl)</strong></td>
+                  <td><code>int16</code></td>
+                  <td><strong>39.60%</strong></td>
+                  <td>0.1331 ms</td>
+                  <td>31,944</td>
+                  <td>0.01997 mJ</td>
+                  <td>8.07 KB</td>
+                  <td><strong>14,872.4</strong></td>
+                  <td><strong>110,435.5</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (4CH, 10cl)</strong></td>
+                  <td><code>float32</code></td>
+                  <td>81.79%</td>
+                  <td>0.1741 ms</td>
+                  <td>41,793</td>
+                  <td>0.02586 mJ</td>
+                  <td>11.21 KB</td>
+                  <td><strong>4,640.7</strong></td>
+                  <td><strong>29,773.7</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>Ozdemir et al. (2CH, 10cl)</strong></td>
+                  <td><code>int16</code></td>
+                  <td>63.89%</td>
+                  <td>0.1307 ms</td>
+                  <td>31,368</td>
+                  <td>0.01961 mJ</td>
+                  <td>8.07 KB</td>
+                  <td><strong>4,887.6</strong></td>
+                  <td><strong>36,292.8</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel DTW: M03 a M05 -->
+        <div id="panel-dtw" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Modelo</th>
+                  <th>Algoritmo / Complexidade</th>
+                  <th>Acurácia NinaPro</th>
+                  <th>Acurácia Ozdemir</th>
+                  <th>Latência QEMU (ms)</th>
+                  <th>Poda LB-Keogh</th>
+                  <th>SRAM Runtime</th>
+                  <th>IRC (NinaPro)</th>
+                  <th>IEE (NinaPro)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M03</strong></td>
+                  <td>DTW Clássico &bull; $\mathcal{O}(N^2)$</td>
+                  <td>43.63%</td>
+                  <td>68.12%</td>
+                  <td>1.2666 ms</td>
+                  <td>—</td>
+                  <td>28.45 KB</td>
+                  <td>1,722.3</td>
+                  <td>7,976.3</td>
+                </tr>
+                <tr>
+                  <td><strong>M04</strong></td>
+                  <td>Sakoe-Chiba &bull; $\mathcal{O}(w \cdot N)$</td>
+                  <td>43.63%</td>
+                  <td>67.73%</td>
+                  <td>0.3234 ms</td>
+                  <td>—</td>
+                  <td>22.51 KB</td>
+                  <td>6,745.4</td>
+                  <td>33,588.1</td>
+                </tr>
+                <tr>
+                  <td><strong>M05</strong></td>
+                  <td>Poda Exata LB-Keogh &bull; $\mathcal{O}(N)$</td>
+                  <td>43.63%</td>
+                  <td>67.73%</td>
+                  <td><strong>0.0634 ms</strong></td>
+                  <td><strong>95.0% podado</strong></td>
+                  <td>22.71 KB</td>
+                  <td><strong>34,428.5</strong></td>
+                  <td><strong>170,947.5</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Painel Híbridos: M06 a M10 -->
+        <div id="panel-hibridos" class="model-tab-panel">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Arquitetura Híbrida</th>
+                  <th>Acurácia NinaPro</th>
+                  <th>Acurácia Ozdemir</th>
+                  <th>Latência QEMU</th>
+                  <th>Energia (mJ)</th>
+                  <th>Early Exit / Top-M</th>
+                  <th>IRC (NinaPro)</th>
+                  <th>IEE (NinaPro)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M06</strong></td>
+                  <td>LDA + CNN Head Fusion</td>
+                  <td>48.08%</td>
+                  <td>81.79%</td>
+                  <td>0.3537 ms</td>
+                  <td>0.05253 mJ</td>
+                  <td>—</td>
+                  <td>6,795.7</td>
+                  <td>31,920.8</td>
+                </tr>
+                <tr>
+                  <td><strong>M07</strong></td>
+                  <td>LDA + CNN Cascade (Early-Exit)</td>
+                  <td><strong>58.98%</strong></td>
+                  <td><strong>82.69%</strong></td>
+                  <td><strong>0.2703 ms</strong></td>
+                  <td><strong>0.04014 mJ</strong></td>
+                  <td>EE = 24.6%</td>
+                  <td><strong>10,909.1</strong></td>
+                  <td><strong>51,433.2</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>M08</strong></td>
+                  <td>DTW + LDA (Top-5 Pruning)</td>
+                  <td>49.59%</td>
+                  <td>81.32%</td>
+                  <td><strong>0.0385 ms</strong></td>
+                  <td><strong>0.00571 mJ</strong></td>
+                  <td>Top-M = 5</td>
+                  <td><strong>64,423.3</strong></td>
+                  <td><strong>320,788.9</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>M09</strong></td>
+                  <td>DTW + CNN-1D INT8</td>
+                  <td><strong>59.73%</strong></td>
+                  <td>81.79%</td>
+                  <td>0.3816 ms</td>
+                  <td>0.05668 mJ</td>
+                  <td>Top-M = 5</td>
+                  <td>7,825.5</td>
+                  <td>36,766.6</td>
+                </tr>
+                <tr>
+                  <td><strong>M10</strong></td>
+                  <td>Tri-Híbrido DTW + LDA + CNN</td>
+                  <td>49.26%</td>
+                  <td><strong>82.78%</strong></td>
+                  <td>0.2168 ms</td>
+                  <td>0.03220 mJ</td>
+                  <td>EE = 49.2%</td>
+                  <td>11,359.4</td>
+                  <td>53,251.3</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         4. SEÇÃO COMPLETA: QUANTIZAÇÕES, REDUÇÃO DE CANAIS E ÍNDICES IRC/IEE
+         ==================================================================== -->
+    <section id="quant-canais" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">5. Matriz de Quantizações, Redução de Canais e Índices IRC / IEE</h2>
+          <p class="section-lead">Apresentação exaustiva de todas as configurações numéricas (float32 a int8) e canais (12 a 1 canal) avaliadas em todos os modelos.</p>
+        </div>
+
+        <!-- Card Explicativo das Fórmulas IRC e IEE -->
+        <div class="grid-2" style="margin-bottom: 2rem;">
+          <div class="card">
+            <h3 class="card-title">Índice de Responsividade e Capacidade (IRC)</h3>
+            <p class="card-text">
+              Mede a taxa de classificação correta ponderada pelo repertório gestual por unidade de tempo no microcontrolador:
+            </p>
+            <div style="background-color: var(--color-bg); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              IRC = (Acurácia_Top1[%] &times; N_gestos) / Latência_ms
+            </div>
+            <ul class="card-list">
+              <li><strong>Significado:</strong> Quantos gestos acurados o sistema decodifica por milissegundo de CPU.</li>
+              <li><strong>Objetivo:</strong> Maximizar a resposta antes do limiar perceptivo humano (&lt; 100 ms).</li>
+              <li><strong>Líder Absoluto:</strong> <code>M01_micro_lda_q7</code> (IRC = 686.361 no Ozdemir e 469.671 no NinaPro).</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Índice de Eficiência Embarcada (IEE)</h3>
+            <p class="card-text">
+              Mede o rendimento de acurácia em relação ao custo combinado de energia e ocupação de memória SRAM em silício:
+            </p>
+            <div style="background-color: var(--color-bg); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.9rem; margin-bottom: 0.75rem;">
+              IEE = (Acurácia_Top1[%] &times; N_gestos) / (Energia_mJ &times; log10(SRAM_KB))
+            </div>
+            <ul class="card-list">
+              <li><strong>Significado:</strong> Eficiência de silício (repertório acurado por milijoule consumido e footprint de RAM).</li>
+              <li><strong>Objetivo:</strong> Garantir que a prótese dure o dia inteiro sem esgotar a bateria ou exceder 512 KB de SRAM.</li>
+              <li><strong>Destaque Híbrido:</strong> <code>M11 Hierárquico</code> atinge IEE = 140.125 (3.5&times; superior à CNN-1D pura).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 4A. Degradação por Redução de Canais no NinaPro DB2 (12 a 1 canal) -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h3 class="card-title">4A. Degradação por Redução de Canais: NinaPro DB2 (50 Classes — 12 a 1 Canal em int16)</h3>
+          <p class="card-text">Acurácia Top-1 LOTO (%) em todas as 7 resoluções de eletrodos em todos os modelos avaliados:</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Canais</th>
+                  <th>M01 LDA</th>
+                  <th>M02 CNN</th>
+                  <th>M03 DTW</th>
+                  <th>M04 SC</th>
+                  <th>M05 Keogh</th>
+                  <th>M06 Head</th>
+                  <th>M07 Casc</th>
+                  <th>M08 DTW+L</th>
+                  <th>M09 DTW+C</th>
+                  <th>M10 Tri</th>
+                  <th>M11 Hier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>12CH</strong></td>
+                  <td>48.17%</td>
+                  <td><strong>59.28%</strong></td>
+                  <td>43.66%</td>
+                  <td>43.67%</td>
+                  <td>43.67%</td>
+                  <td>48.56%</td>
+                  <td>58.95%</td>
+                  <td>50.10%</td>
+                  <td><strong>59.85%</strong></td>
+                  <td>50.72%</td>
+                  <td><strong>57.96%</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>10CH</strong></td>
+                  <td>44.98%</td>
+                  <td>56.58%</td>
+                  <td>41.60%</td>
+                  <td>41.59%</td>
+                  <td>41.59%</td>
+                  <td>46.16%</td>
+                  <td>55.49%</td>
+                  <td>46.32%</td>
+                  <td>56.74%</td>
+                  <td>48.05%</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>8CH</strong></td>
+                  <td>41.35%</td>
+                  <td>53.89%</td>
+                  <td>39.99%</td>
+                  <td>39.97%</td>
+                  <td>39.97%</td>
+                  <td>43.87%</td>
+                  <td>52.12%</td>
+                  <td>44.17%</td>
+                  <td>53.83%</td>
+                  <td>44.85%</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>6CH</strong></td>
+                  <td>36.84%</td>
+                  <td>49.99%</td>
+                  <td>34.84%</td>
+                  <td>34.85%</td>
+                  <td>34.85%</td>
+                  <td>40.18%</td>
+                  <td>47.78%</td>
+                  <td>37.98%</td>
+                  <td>49.94%</td>
+                  <td>40.30%</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>4CH</strong></td>
+                  <td>26.64%</td>
+                  <td>45.10%</td>
+                  <td>23.53%</td>
+                  <td>23.67%</td>
+                  <td>23.67%</td>
+                  <td>34.85%</td>
+                  <td>41.34%</td>
+                  <td>29.85%</td>
+                  <td>44.57%</td>
+                  <td>30.29%</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>2CH</strong></td>
+                  <td>16.12%</td>
+                  <td><strong>39.60%</strong></td>
+                  <td>9.20%</td>
+                  <td>10.48%</td>
+                  <td>10.48%</td>
+                  <td>26.54%</td>
+                  <td>36.42%</td>
+                  <td>16.75%</td>
+                  <td><strong>38.64%</strong></td>
+                  <td>19.15%</td>
+                  <td>10.07%</td>
+                </tr>
+                <tr>
+                  <td><strong>1CH</strong></td>
+                  <td>11.04%</td>
+                  <td>35.00%</td>
+                  <td>4.79%</td>
+                  <td>7.48%</td>
+                  <td>7.48%</td>
+                  <td>15.53%</td>
+                  <td>31.72%</td>
+                  <td>11.96%</td>
+                  <td>34.88%</td>
+                  <td>12.48%</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4B. Degradação por Redução de Canais no Ozdemir et al. (4 a 1 canal) -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h3 class="card-title">4B. Degradação por Redução de Canais: Ozdemir et al. (10 Classes — 4 a 1 Canal em int16)</h3>
+          <p class="card-text">Acurácia Top-1 LOTO (%) em todas as 4 resoluções de canais em todos os modelos:</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Canais</th>
+                  <th>M01 LDA</th>
+                  <th>M02 CNN</th>
+                  <th>M03 DTW</th>
+                  <th>M04 SC</th>
+                  <th>M05 Keogh</th>
+                  <th>M06 Head</th>
+                  <th>M07 Casc</th>
+                  <th>M08 DTW+L</th>
+                  <th>M09 DTW+C</th>
+                  <th>M10 Tri</th>
+                  <th>M11 Hier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>4CH</strong></td>
+                  <td>82.05%</td>
+                  <td>80.90%</td>
+                  <td>68.12%</td>
+                  <td>67.73%</td>
+                  <td>67.73%</td>
+                  <td>81.97%</td>
+                  <td>81.97%</td>
+                  <td>82.27%</td>
+                  <td><strong>83.42%</strong></td>
+                  <td>82.14%</td>
+                  <td>61.58%</td>
+                </tr>
+                <tr>
+                  <td><strong>3CH</strong></td>
+                  <td>80.09%</td>
+                  <td>79.83%</td>
+                  <td>64.40%</td>
+                  <td>64.87%</td>
+                  <td>64.87%</td>
+                  <td>80.77%</td>
+                  <td>79.79%</td>
+                  <td>80.34%</td>
+                  <td><strong>81.07%</strong></td>
+                  <td>81.11%</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td><strong>2CH</strong></td>
+                  <td>64.06%</td>
+                  <td>63.89%</td>
+                  <td>53.72%</td>
+                  <td>53.72%</td>
+                  <td>53.72%</td>
+                  <td>66.79%</td>
+                  <td>65.81%</td>
+                  <td><strong>66.97%</strong></td>
+                  <td>66.37%</td>
+                  <td>66.88%</td>
+                  <td>35.17%</td>
+                </tr>
+                <tr>
+                  <td><strong>1CH</strong></td>
+                  <td>47.09%</td>
+                  <td>50.81%</td>
+                  <td>40.56%</td>
+                  <td>39.32%</td>
+                  <td>39.32%</td>
+                  <td><strong>55.09%</strong></td>
+                  <td>53.76%</td>
+                  <td>49.02%</td>
+                  <td>50.26%</td>
+                  <td>51.28%</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4C. Matriz Completa de Quantização (float32, float16, int32, int16, int8) -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h3 class="card-title">4C. Matriz de Quantizações de Entrada: 5 Níveis Numéricos (NinaPro 12CH &amp; Ozdemir 4CH)</h3>
+          <p class="card-text">Demonstração da <strong>Lei da Invariância em 16 bits</strong> e o efeito da compressão em 8 bits:</p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Precisão</th>
+                  <th>M01 LDA</th>
+                  <th>M02 CNN</th>
+                  <th>M03 DTW</th>
+                  <th>M04/05 SC/Keogh</th>
+                  <th>M06 Head</th>
+                  <th>M07 Cascata</th>
+                  <th>M08 DTW+L</th>
+                  <th>M09 DTW+C</th>
+                  <th>M10 Tri</th>
+                  <th>M11 Hier</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>NinaPro (12CH)</td>
+                  <td><code>float32</code></td>
+                  <td>47.81%</td>
+                  <td>59.37%</td>
+                  <td>43.63%</td>
+                  <td>43.64%</td>
+                  <td>48.21%</td>
+                  <td>59.16%</td>
+                  <td>50.08%</td>
+                  <td>59.95%</td>
+                  <td>50.82%</td>
+                  <td><strong>57.96%</strong></td>
+                </tr>
+                <tr>
+                  <td>NinaPro (12CH)</td>
+                  <td><code>float16</code></td>
+                  <td>47.52%</td>
+                  <td>59.44%</td>
+                  <td>43.63%</td>
+                  <td>43.64%</td>
+                  <td>48.41%</td>
+                  <td>59.15%</td>
+                  <td>49.86%</td>
+                  <td>59.98%</td>
+                  <td>50.61%</td>
+                  <td><strong>58.03%</strong></td>
+                </tr>
+                <tr>
+                  <td>NinaPro (12CH)</td>
+                  <td><code>int32</code></td>
+                  <td>47.83%</td>
+                  <td>59.37%</td>
+                  <td>43.64%</td>
+                  <td>43.65%</td>
+                  <td>48.30%</td>
+                  <td>59.16%</td>
+                  <td>50.10%</td>
+                  <td>59.95%</td>
+                  <td>50.86%</td>
+                  <td><strong>57.96%</strong></td>
+                </tr>
+                <tr>
+                  <td>NinaPro (12CH)</td>
+                  <td><code>int16</code></td>
+                  <td>48.17%</td>
+                  <td>59.28%</td>
+                  <td>43.66%</td>
+                  <td>43.67%</td>
+                  <td>48.56%</td>
+                  <td>58.95%</td>
+                  <td>50.10%</td>
+                  <td>59.85%</td>
+                  <td>50.72%</td>
+                  <td><strong>58.08%</strong></td>
+                </tr>
+                <tr>
+                  <td>NinaPro (12CH)</td>
+                  <td><code>int8</code></td>
+                  <td>53.03%</td>
+                  <td>9.86% <em>(colapso)</em></td>
+                  <td>43.04%</td>
+                  <td>43.05%</td>
+                  <td>53.01%</td>
+                  <td>53.10%</td>
+                  <td>53.44%</td>
+                  <td>30.42%</td>
+                  <td>53.65%</td>
+                  <td><strong>51.64%</strong></td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (4CH)</td>
+                  <td><code>float32</code></td>
+                  <td>82.22%</td>
+                  <td>80.73%</td>
+                  <td>68.21%</td>
+                  <td>68.12%</td>
+                  <td>82.44%</td>
+                  <td>82.44%</td>
+                  <td>82.27%</td>
+                  <td>82.69%</td>
+                  <td>82.99%</td>
+                  <td>61.58%</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (4CH)</td>
+                  <td><code>float16</code></td>
+                  <td>82.39%</td>
+                  <td>80.60%</td>
+                  <td>68.21%</td>
+                  <td>68.12%</td>
+                  <td>82.65%</td>
+                  <td>82.65%</td>
+                  <td>82.31%</td>
+                  <td>82.73%</td>
+                  <td>82.78%</td>
+                  <td>61.50%</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (4CH)</td>
+                  <td><code>int32</code></td>
+                  <td>82.22%</td>
+                  <td>80.73%</td>
+                  <td>68.21%</td>
+                  <td>68.12%</td>
+                  <td>82.44%</td>
+                  <td>82.44%</td>
+                  <td>82.27%</td>
+                  <td>82.69%</td>
+                  <td>82.99%</td>
+                  <td>61.58%</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (4CH)</td>
+                  <td><code>int16</code></td>
+                  <td>82.05%</td>
+                  <td>80.90%</td>
+                  <td>68.12%</td>
+                  <td>67.73%</td>
+                  <td>81.97%</td>
+                  <td>81.97%</td>
+                  <td>82.27%</td>
+                  <td>83.42%</td>
+                  <td>82.14%</td>
+                  <td>61.24%</td>
+                </tr>
+                <tr>
+                  <td>Ozdemir (4CH)</td>
+                  <td><code>int8</code></td>
+                  <td>76.07%</td>
+                  <td>35.04%</td>
+                  <td>60.90%</td>
+                  <td>60.94%</td>
+                  <td>76.45%</td>
+                  <td>76.71%</td>
+                  <td>76.15%</td>
+                  <td>50.81%</td>
+                  <td>76.58%</td>
+                  <td>48.63%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4D. Tabela Completa de Índices IRC e IEE (Cenário Completo vs Prótese 2 Canais) -->
+        <div class="card">
+          <h3 class="card-title">4D. Tabela Mestra: Índices de Responsividade (IRC) e Eficiência de Silício (IEE)</h3>
+          <p class="card-text">
+            Ordenação analítica de todos os modelos por responsividade e consumo no ESP32-S3 a 240 MHz:
+          </p>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Modelo</th>
+                  <th>Latência QEMU (ms)</th>
+                  <th>Energia (mJ)</th>
+                  <th>SRAM (KB)</th>
+                  <th>IRC (NinaPro 12CH)</th>
+                  <th>IEE (NinaPro 12CH)</th>
+                  <th>IRC (Ozdemir 4CH)</th>
+                  <th>IEE (Ozdemir 4CH)</th>
+                  <th>IRC (Prótese 2CH)</th>
+                  <th>IEE (Prótese 2CH)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M01_micro_lda_q7</strong></td>
+                  <td>0.0050 ms</td>
+                  <td>0.00074 mJ</td>
+                  <td>22.20 KB</td>
+                  <td><strong>469,671.4</strong></td>
+                  <td><strong>2,349,139.0</strong></td>
+                  <td><strong>686,361.8</strong></td>
+                  <td><strong>5,639,679.2</strong></td>
+                  <td><strong>960,416.8</strong></td>
+                  <td><strong>11,997,291.6</strong></td>
+                </tr>
+                <tr>
+                  <td><strong>M08_hybrid_dtw_lda</strong></td>
+                  <td>0.0385 ms</td>
+                  <td>0.00571 mJ</td>
+                  <td>22.51 KB</td>
+                  <td><strong>64,423.3</strong></td>
+                  <td><strong>320,788.9</strong></td>
+                  <td>34,210.3</td>
+                  <td>274,423.6</td>
+                  <td>32,765.3</td>
+                  <td>382,832.2</td>
+                </tr>
+                <tr>
+                  <td><strong>M05_dtw_lb_keogh</strong></td>
+                  <td>0.0634 ms</td>
+                  <td>0.00941 mJ</td>
+                  <td>22.71 KB</td>
+                  <td>34,428.5</td>
+                  <td>170,947.5</td>
+                  <td>66,289.9</td>
+                  <td>524,019.8</td>
+                  <td>68,860.3</td>
+                  <td>774,403.6</td>
+                </tr>
+                <tr>
+                  <td><strong>M11_hierarchical (&tau;=0.80)</strong></td>
+                  <td><strong>0.0994 ms</strong></td>
+                  <td><strong>0.01476 mJ</strong></td>
+                  <td><strong>25.33 KB</strong></td>
+                  <td><strong>29,208.5</strong></td>
+                  <td><strong>140,125.9</strong></td>
+                  <td>6,201.2</td>
+                  <td>38,159.5</td>
+                  <td>4,781.0</td>
+                  <td>33,406.1</td>
+                </tr>
+                <tr>
+                  <td><strong>M10_hybrid_dtw_lda_cnn</strong></td>
+                  <td>0.2168 ms</td>
+                  <td>0.03220 mJ</td>
+                  <td>27.32 KB</td>
+                  <td>11,359.4</td>
+                  <td>53,251.3</td>
+                  <td>8,900.5</td>
+                  <td>56,070.9</td>
+                  <td>8,291.6</td>
+                  <td>59,814.3</td>
+                </tr>
+                <tr>
+                  <td><strong>M07_hybrid_lda_cnn_cascade</strong></td>
+                  <td>0.2703 ms</td>
+                  <td>0.04014 mJ</td>
+                  <td>26.81 KB</td>
+                  <td>10,909.1</td>
+                  <td>51,433.2</td>
+                  <td>10,846.1</td>
+                  <td>69,586.0</td>
+                  <td>11,590.1</td>
+                  <td>86,062.4</td>
+                </tr>
+                <tr>
+                  <td><strong>M02_cnn1d_int8</strong></td>
+                  <td>0.3493 ms</td>
+                  <td>0.05188 mJ</td>
+                  <td>26.81 KB</td>
+                  <td>8,474.1</td>
+                  <td>39,952.8</td>
+                  <td>4,640.7</td>
+                  <td>29,773.7</td>
+                  <td>4,887.6</td>
+                  <td>36,292.8</td>
+                </tr>
+                <tr>
+                  <td><strong>M09_hybrid_dtw_cnn</strong></td>
+                  <td>0.3816 ms</td>
+                  <td>0.05668 mJ</td>
+                  <td>27.12 KB</td>
+                  <td>7,825.5</td>
+                  <td>36,766.6</td>
+                  <td>4,167.7</td>
+                  <td>26,440.2</td>
+                  <td>4,402.6</td>
+                  <td>32,111.5</td>
+                </tr>
+                <tr>
+                  <td><strong>M06_hybrid_lda_cnn_head</strong></td>
+                  <td>0.3537 ms</td>
+                  <td>0.05253 mJ</td>
+                  <td>27.14 KB</td>
+                  <td>6,795.7</td>
+                  <td>31,920.8</td>
+                  <td>4,683.6</td>
+                  <td>29,692.2</td>
+                  <td>5,067.2</td>
+                  <td>36,917.8</td>
+                </tr>
+                <tr>
+                  <td><strong>M04_dtw_sakoe_chiba</strong></td>
+                  <td>0.3234 ms</td>
+                  <td>0.04802 mJ</td>
+                  <td>22.51 KB</td>
+                  <td>6,745.4</td>
+                  <td>33,588.1</td>
+                  <td>15,356.6</td>
+                  <td>123,185.6</td>
+                  <td>13,716.1</td>
+                  <td>160,260.2</td>
+                </tr>
+                <tr>
+                  <td><strong>M03_dtw_classic_on2</strong></td>
+                  <td>1.2666 ms</td>
+                  <td>0.18809 mJ</td>
+                  <td>28.45 KB</td>
+                  <td>1,722.3</td>
+                  <td>7,976.3</td>
+                  <td>4,268.0</td>
+                  <td>25,918.4</td>
+                  <td>3,927.9</td>
+                  <td>26,793.3</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         5. COMPARATIVO DE HARDWARE: ESP32 EMULADO (QEMU) VS. ESP32 REAL
+         ==================================================================== -->
+    <section id="hardware" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">6. Comparativo de Hardware: ESP32-S3 Emulado vs. Físico Real</h2>
+          <p class="section-lead">Ambiente preparado e calibrado para medição ciclo-a-ciclo no silício real (HIL via UART /dev/ttyACM0).</p>
+        </div>
+
+        <div class="grid-2">
+          <!-- Card de Status do Ambiente Emulado -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h3 class="card-title" style="margin-bottom: 0;">Ambiente Emulado (QEMU)</h3>
+              <span class="status-badge badge-emulated">&check; Validado</span>
+            </div>
+            <p class="card-text">
+              Emulação ciclo-exata no Espressif QEMU (Xtensa LX7 @ 240 MHz). Medição de ciclos do registrador <code>CCOUNT</code>, verificação de paridade numérica bit-a-bit e auditoria de vazamento de memória.
+            </p>
+            <ul class="card-list">
+              <li><strong>Target:</strong> <code>esp32s3</code> (Xtensa Dual-Core)</li>
+              <li><strong>Clock:</strong> 240 MHz cravados</li>
+              <li><strong>Paridade Numérica:</strong> 100,00% com Host x86_64</li>
+              <li><strong>Status:</strong> Bateria completa executada (20/20 cenários)</li>
+            </ul>
+          </div>
+
+          <!-- Card de Status do Hardware Físico Real -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h3 class="card-title" style="margin-bottom: 0;">Hardware Físico Real (ESP32-S3 Target)</h3>
+              <span class="status-badge badge-real-standby">&#9881; Pronto para Ingestão</span>
+            </div>
+            <p class="card-text">
+              Módulo físico <strong>ESP32-S3-WROOM-1</strong> instrumentado com contadores DWT em hardware e temporização de interrupções via UART serial (protocolo binário HIL).
+            </p>
+            <ul class="card-list">
+              <li><strong>Interface:</strong> Protocolo HIL binário via <code>/dev/ttyACM0</code> (115200 bps)</li>
+              <li><strong>Instrumentação:</strong> Registradores de ciclo DWT e GPIO toggle</li>
+              <li><strong>Firmware Carregado:</strong> <code>firmware/esp32s3_wroom</code> (ESP-IDF v5.3.2)</li>
+              <li><strong>Status:</strong> Protocolo de comunicação testado; aguardando disparo da bateria de testes físicos</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tabela Pareada QEMU vs Físico Real (Pronta para Ingestão) -->
+        <div class="hw-comparison-box">
+          <h3 class="card-title" style="margin-bottom: 0.5rem;">Tabela Pareada: Emulação QEMU vs. Silício Físico</h3>
+          <p class="card-text">
+            Dados preliminares de validação de paridade (20 janelas em INT8) já registrados no relatório HIL. Esta tabela será automaticamente preenchida com a bateria completa assim que o dispositivo físico for acionado.
+          </p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Motor de Inferência</th>
+                  <th>Janelas</th>
+                  <th>Paridade Bit-Exata</th>
+                  <th>Latência QEMU (Média)</th>
+                  <th>Latência Silício Real (Média)</th>
+                  <th>Discrepância (&Delta; Latência)</th>
+                  <th>SRAM Livre (Core 1)</th>
+                  <th>Status de Medição</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Micro-LDA Q7</strong></td>
+                  <td>20</td>
+                  <td><strong>100.0% (20/20)</strong></td>
+                  <td>~1.2 µs (0.0012 ms)</td>
+                  <td><strong>329.71 µs</strong> <em>(overhead RTOS/HAL)</em></td>
+                  <td>+328.5 µs</td>
+                  <td>3,332 bytes</td>
+                  <td><span class="status-badge badge-real-active">&check; Parcial Real</span></td>
+                </tr>
+                <tr>
+                  <td><strong>CNN-1D INT8</strong></td>
+                  <td>20</td>
+                  <td><strong>100.0% (20/20)</strong></td>
+                  <td>174.1 µs (0.1741 ms)</td>
+                  <td><strong>6,563.46 µs</strong> <em>(sem DMA PIE)</em></td>
+                  <td>Em calibração</td>
+                  <td>3,332 bytes</td>
+                  <td><span class="status-badge badge-real-active">&check; Parcial Real</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M07 Cascata (Early-Exit)</strong></td>
+                  <td>15.824</td>
+                  <td>100.0% (QEMU)</td>
+                  <td>0.2703 ms</td>
+                  <td><em>[Aguardando conexão /dev/ttyACM0]</em></td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td><span class="status-badge badge-real-standby">Pendente</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M11 Hierárquico (&tau; = 0.80)</strong></td>
+                  <td>15.824</td>
+                  <td>100.0% (QEMU)</td>
+                  <td>0.0994 ms</td>
+                  <td><em>[Aguardando conexão /dev/ttyACM0]</em></td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td><span class="status-badge badge-real-standby">Pendente</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         6. SESSÃO SEPARADA: CONTEXTO DO PROJETO & FORMULAÇÃO DO PROBLEMA
+         ==================================================================== -->
+    <section id="contexto" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">7. Contexto do Projeto e Formulação do Problema</h2>
+          <p class="section-lead">A fundamentação biológica, os desafios de engenharia e os três gargalos da literatura.</p>
+        </div>
+
+        <div class="grid-2">
+          <article class="card">
+            <h3 class="card-title">Contexto Clínico &amp; Próteses Mioelétricas</h3>
+            <p class="card-text">
+              Sinais de eletromiografia de superfície (sEMG) registram o potencial de ação muscular no antebraço residual de pessoas amputadas. A decodificação em tempo real desses sinais permite controlar próteses multifuncionais comerciais.
+            </p>
+            <ul class="card-list">
+              <li><strong>Janelamento Causal:</strong> Janelas de 200 ms (400 amostras a 2 kHz) com avanço de 50 ms.</li>
+              <li><strong>Limiar Humano:</strong> O atraso total do sistema deve ser menor que 100 ms para que o usuário sinta controle contínuo e transparente.</li>
+              <li><strong>Hardware Restrito:</strong> Microcontroladores de baixo custo (ESP32-S3) com apenas 512 KB de SRAM interna.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <h3 class="card-title">Os Três Gargalos da Literatura</h3>
+            <p class="card-text">
+              A literatura acadêmica e a indústria de próteses enfrentam barreiras fundamentais:
+            </p>
+            <ol class="card-list" style="padding-left: 1.25rem;">
+              <li><strong>Teto dos 70% de Acurácia:</strong> Em bases de 50 classes como o NinaPro DB2, modelos convencionais sofrem confusão entre dezenas de gestos simultâneos.</li>
+              <li><strong>Crosstalk de Volume:</strong> Sinais de grande amplitude de flexão de punho mascaram os sinais atenuados de músculos profundos responsáveis por pinças e dedos.</li>
+              <li><strong>Inviabilidade de Redes Pesadas:</strong> CNNs 2D/3D consomem dezenas de megabytes de RAM e esgotam baterias portáteis em poucas horas.</li>
+            </ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         7. SESSÃO SEPARADA: PROPOSTA DE SOLUÇÃO TÉCNICA
+         ==================================================================== -->
+    <section id="solucao" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">8. Proposta de Solução Técnica</h2>
+          <p class="section-lead">Arquitetura modular em camadas: DSP causal em streaming, features TD em ponto fixo e modelo hierárquico Coarse-to-Fine.</p>
+        </div>
+
+        <div class="grid-3">
+          <article class="card">
+            <h3 class="card-title">DSP Causal em Streaming (DF2T)</h3>
+            <p class="card-text">
+              Filtro biquad IIR Butterworth de 4ª ordem (20–450 Hz) em Forma Direta II Transposta que preserva o estado de memória entre chunks do ADC sem qualquer distorção de fase.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 class="card-title">Extrator Hudgins no Domínio do Tempo</h3>
+            <p class="card-text">
+              Conjunto analítico clássico (MAV, RMS, WL, ZC, SSC) computado com banda morta de ruído de 10 µV, reduzindo a complexidade de tensores complexos para apenas 5 features por canal.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3 class="card-title">Hierarquia Coarse-to-Fine (M11)</h3>
+            <p class="card-text">
+              Macro-LDA linear (&tau; = 0.80) que resolve ~70% das janelas no Fast Path em ~0.04 ms, ativando seletivamente a CNN-1D de 23 classes apenas quando há incerteza ou preensão fina.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         2. SUAVIZAÇÃO TEMPORAL EM JANELA DESLIZANTE (PASSO 1)
+         ==================================================================== -->
+    
+
+    <!-- ====================================================================
+         8. SESSÃO SEPARADA: EVOLUÇÃO E ANDAMENTO AO LONGO DO SEMESTRE
+         ==================================================================== -->
+    <section id="evolucao" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">9. Evolução e Andamento do Projeto ao Longo do Semestre</h2>
+          <p class="section-lead">A trajetória completa do desenvolvimento, com metodologia orientada por especificações (SDD) e testes (TDD).</p>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 1 • Semanas 1 a 3</div>
+            <h3 class="timeline-title">Concepção Formal, Governança SDD &amp; Arquitetura Base</h3>
+            <div class="timeline-body">
+              <p>Estruturação dos pacotes modulares, constituição do projeto, tipagem estrita via <code>mypy</code>, testes determinísticos via <code>pytest</code> e gates anti-tampering.</p>
+              <div class="timeline-tags">
+                <span class="tag">SDD / SpecKit</span><span class="tag">TDD</span><span class="tag">Constituição</span><span class="tag">Python 3.10+</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 2 • Semanas 4 a 6</div>
+            <h3 class="timeline-title">DSP Causal em Streaming &amp; Ingestão Determinística</h3>
+            <div class="timeline-body">
+              <p>Implementação do pacote <code>semg_dsp</code> com filtros biquad DF2T invariantes a tamanho de chunk e ingestão auditada do NinaPro DB2 (40 sujeitos) e Ozdemir (40 sujeitos).</p>
+              <div class="timeline-tags">
+                <span class="tag">semg_dsp</span><span class="tag">Biquad DF2T</span><span class="tag">NinaPro DB2</span><span class="tag">Ozdemir et al.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 3 • Semanas 7 a 9</div>
+            <h3 class="timeline-title">Extração de Features TD, Micro-LDA &amp; Auditoria de Confounding</h3>
+            <div class="timeline-body">
+              <p>Extração Hudgins TD (MAV, RMS, WL, ZC, SSC), calibrador Z-score restrito ao treino e validação estrita contra vazamento de dados via LOTO e 5-Fold Cross-Subject.</p>
+              <div class="timeline-tags">
+                <span class="tag">Features Hudgins</span><span class="tag">Micro-LDA Q7</span><span class="tag">LOTO Splitter</span><span class="tag">Anti-Vazamento</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 4 • Semanas 10 a 12</div>
+            <h3 class="timeline-title">Estudo Populacional: Quantização de Sinais e Redução de Canais</h3>
+            <div class="timeline-body">
+              <p>Cruzamento de 5 quantizações (float32 a int8) com redução de 12 para 1 canal. Prova da invariância em 16 bits (-50% dados sem perda de acurácia) e fronteiras de Pareto.</p>
+              <div class="timeline-tags">
+                <span class="tag">Quantização (float32 a int8)</span><span class="tag">Redução de Canais</span><span class="tag">Fronteira de Pareto</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 5 • Semanas 13 a 15</div>
+            <h3 class="timeline-title">Modelos Híbridos, DTW Otimizado &amp; Arquitetura Hierárquica Coarse-to-Fine</h3>
+            <div class="timeline-body">
+              <p>Implementação dos modelos DTW com poda LB-Keogh, modelo cascata M07 e modelo M11 Hierárquico. Profiling ciclo-a-ciclo no QEMU ESP32-S3 com paridade 100% bit-exata e calibração da bancada HIL física.</p>
+              <div class="timeline-tags">
+                <span class="tag">M11 Coarse-to-Fine</span><span class="tag">M07 Cascata</span><span class="tag">QEMU ESP32-S3</span><span class="tag">HIL /dev/ttyACM0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-phase">Fase 6 • Semanas 16 a 18 (Fase Atual)</div>
+            <h3 class="timeline-title">Rompendo os 71% no NinaPro: Suavização Temporal, CNN-2D Circular, SupCon &amp; 636 Features</h3>
+            <div class="timeline-body">
+              <p>Execução dos Passos 1 a 4: filtro causal de votação majoritária/soft ($K=5$, 200 ms), CNN-2D circular anatômica (M12), aprendizado contrastivo balanceado por classe (M13, queda INT8 de apenas 0,08%) e extrator multi-domínio de 636 features (AR-4, 5 sub-bandas, EMGCC, Wavelet Haar e 132 sinergias inter-canais) no M14 alcançando <strong>68,59%</strong> ($K=5$) e <strong>71,06%</strong> ($K=9$) no NinaPro DB2 e <strong>80,77%</strong> no Ozdemir com apenas 2 eletrodos.</p>
+              <div class="timeline-tags">
+                <span class="tag">Passo 1: Smoothing</span><span class="tag">M12: Circular 2D</span><span class="tag">M13: SupCon</span><span class="tag">M14: 636 Features (71,06%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================================
+       MODAL LIGHTBOX PARA EXPANSÃO DE GRÁFICOS
+       ====================================================================== -->
+  <div id="chartModal" class="chart-modal">
+    <div class="chart-modal-dialog">
+      <div class="chart-modal-header">
+        <div>
+          <h3 id="modalChartTitle" class="chart-modal-title">Título do Gráfico</h3>
+          <p id="modalChartDesc" class="chart-modal-desc">Descrição do gráfico</p>
+        </div>
+        <button id="closeChartModal" class="chart-modal-close" title="Fechar (Esc)">&times;</button>
+      </div>
+      <div class="chart-modal-body">
+        <canvas id="modalChartCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       RODAPÉ
+       ====================================================================== -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div>
+        <p><strong>LIAA — Laboratório de Inteligência Artificial Aplicada</strong></p>
+        <p>Projeto de Pesquisa em TinyML e Decodificação Neuromuscular • Allisson Chervenski</p>
+      </div>
+      <ul class="footer-links">
+        <li><a href="https://github.com/AllissonChervenski/liaa-allissonchervenski" target="_blank" rel="noopener">Repositório GitHub</a></li>
+        <li><a href="#dashboard">Voltar ao Topo</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- Script de Inicialização dos Gráficos e Abas -->
+  <script src="js/dashboard.js?v=20261117-4"></script>
+</body>
+</html>

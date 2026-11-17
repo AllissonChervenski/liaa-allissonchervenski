@@ -1,0 +1,482 @@
+generated:
+  scripts/run_rich_features_m14_benchmark.py:
+    source: scripts/run_rich_features_m14_benchmark.py
+    sha256: f2ee4b075076fd81fb8563628f2e71b28d088af98972f564d7a55941d9c2f4e1
+    skeleton: |-
+      from __future__ import annotations
+      from dataclasses import replace
+      import json
+      from pathlib import Path
+      import sys
+      import time
+      from typing import Any
+      import numpy as np
+      from sklearn.metrics import accuracy_score, f1_score
+      from scripts.benchmark_ozdemir_quantization_and_channels import V_FS_MV as OZDEMIR_V_FS_MV, load_ozdemir_recording, quantize_signal as quantize_ozdemir, segment_ozdemir_windows
+      from scripts.benchmark_quantization_and_channels import V_FS_VOLTS as NINAPRO_V_FS_VOLTS, quantize_signal as quantize_ninapro
+      from scripts.run_qemu_cnn1d_benchmark import ESP32S3_ACTIVE_POWER_MW, compute_irc_iee
+      from scripts.run_supcon_cnn2d_benchmark import _evaluate_smoothing_sweeps
+      from semg_baseline.feature004_multi_exercise import MultiExerciseSubject, MultiExerciseWithinSubjectRunner
+      from semg_baseline.lda import CanonicalLdaTrainer, PriorType
+      from semg_baseline.scaling import FeatureScaler
+      from semg_baseline.thresholds import ThresholdCalibrator
+      from semg_dataset.contract import RecordingData
+      from semg_dataset.loader import NinaProDB2Loader
+      from src.features.enhanced_features import EnhancedSemgFeatureExtractor
+      from src.models.temporal_smoothing import causal_soft_voting
+      from src.models.train_rich_supcon_mlp import QuantizedRichMlpArtifacts, train_and_quantize_rich_supcon_mlp
+      def compute_m14_hardware_metrics(art: QuantizedRichMlpArtifacts, acc_pct: float) -> dict[str, float]:
+          """Compute ESP32-S3 @ 240 MHz DSP + MLP cycles, latency, Flash, SRAM, IRC, IEE...."""
+          ...
+      def _evaluate_enhanced_lda(X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, boundaries: list[int], num_classes: int) -> dict[str, float]:
+          """Evaluate Canonical LDA directly on the multi-domain features...."""
+          ...
+      def run_benchmark() -> dict[str, Any]:
+          ...
+      def generate_markdown_report(results: dict[str, Any]) -> None:
+          ...
+    symbols:
+      - name: compute_m14_hardware_metrics
+        kind: function
+        line: 70
+        async: false
+        signature: "def compute_m14_hardware_metrics(art: QuantizedRichMlpArtifacts, acc_pct: float) -> dict[str, float]"
+      - name: _evaluate_enhanced_lda
+        kind: function
+        line: 129
+        async: false
+        signature: "def _evaluate_enhanced_lda(X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, boundaries: list[int], num_classes: int) -> dict[str, float]"
+      - name: run_benchmark
+        kind: function
+        line: 156
+        async: false
+        signature: def run_benchmark() -> dict[str, Any]
+      - name: generate_markdown_report
+        kind: function
+        line: 356
+        async: false
+        signature: "def generate_markdown_report(results: dict[str, Any]) -> None"
+    contracts:
+      routes: []
+      errors: []
+      concurrency: []
+  src/features/enhanced_features.py:
+    source: src/features/enhanced_features.py
+    sha256: 99afc52cb74d07eb3ddf3f65f237e4a4a146bfd8093161ce5fccec60ea27bcd9
+    skeleton: |-
+      from __future__ import annotations
+      from typing import Sequence
+      import numpy as np
+      def _build_dct_basis(num_bands: int, num_ceps: int) -> np.ndarray:
+          """Build Type-II DCT projection matrix of shape (num_bands, num_ceps)...."""
+          ...
+      class EnhancedSemgFeatureExtractor:
+          """Deterministic multi-domain sEMG feature extractor for 50-class TinyML decoding...."""
+          def __init__(self, epsilon: np.ndarray | Sequence[float], num_channels: int, fs: float) -> None:
+              ...
+          def _solve_ar4_batch(windows: np.ndarray) -> np.ndarray:
+              """Compute 4th-order AR coefficients via vectorized regularized Yule-Walker...."""
+              ...
+          def extract(self, windows: np.ndarray, chunk_size: int) -> np.ndarray:
+              """Extract multi-domain features from sEMG windows of shape (N, T, C)...."""
+              ...
+    symbols:
+      - name: _build_dct_basis
+        kind: function
+        line: 37
+        async: false
+        signature: "def _build_dct_basis(num_bands: int, num_ceps: int) -> np.ndarray"
+      - name: EnhancedSemgFeatureExtractor
+        kind: class
+        line: 45
+        signature: class EnhancedSemgFeatureExtractor
+      - name: EnhancedSemgFeatureExtractor.__init__
+        shortName: __init__
+        kind: method
+        line: 50
+        async: false
+        signature: "def __init__(self, epsilon: np.ndarray | Sequence[float], num_channels: int, fs: float) -> None"
+      - name: EnhancedSemgFeatureExtractor._solve_ar4_batch
+        shortName: _solve_ar4_batch
+        kind: method
+        line: 71
+        async: false
+        signature: "def _solve_ar4_batch(windows: np.ndarray) -> np.ndarray"
+      - name: EnhancedSemgFeatureExtractor.extract
+        shortName: extract
+        kind: method
+        line: 91
+        async: false
+        signature: "def extract(self, windows: np.ndarray, chunk_size: int) -> np.ndarray"
+    contracts:
+      routes: []
+      errors:
+        - kind: throw
+          errorType: ValueError
+          enclosingSymbol: EnhancedSemgFeatureExtractor.__init__
+          line: 58
+        - kind: throw
+          errorType: ValueError
+          enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+          line: 94
+        - kind: throw
+          errorType: ValueError
+          enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+          line: 97
+      concurrency: []
+  src/models/train_rich_supcon_mlp.py:
+    source: src/models/train_rich_supcon_mlp.py
+    sha256: 995dc4b803f91c557b9247f52d326f3abc82fd705c6ee8d1a51072a4501e55ce
+    skeleton: |-
+      from __future__ import annotations
+      from dataclasses import dataclass, replace
+      from pathlib import Path
+      import sys
+      import numpy as np
+      from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
+      import torch
+      import torch.nn as nn
+      import torch.nn.functional as F
+      from semg_baseline.lda import CanonicalLdaTrainer, PriorType
+      from semg_baseline.scaling import FeatureScaler
+      from src.models.train_cnn1d_quantized import c_round_half_away, requantize_q24_numpy
+      from src.models.train_cnn2d_circular import fold_conv_bn_weights, set_deterministic_seed
+      from src.models.train_supcon_cnn2d import SupConLoss, SupConProjectionHead
+      class RichFeatureResNetMlp(nn.Module):
+          """Two-stage BatchNorm Residual MLP with Canonical LDA Skip Projection...."""
+          def __init__(self, in_features: int, num_classes: int, hidden1: int, hidden2: int, dropout1: float, dropout2: float) -> None:
+              ...
+          def forward_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+              """Return hidden representations (h1, h2) for SupCon and PTQ calibration...."""
+              ...
+          def forward(self, x: torch.Tensor) -> torch.Tensor:
+              ...
+      class QuantizedRichMlpArtifacts:
+          """Folded symmetric INT8 parameters and calibration scales for M14 Rich MLP...."""
+          dataset_name: str
+          subject_id: str
+          num_channels: int
+          in_features: int
+          hidden1: int
+          hidden2: int
+          num_classes: int
+          total_params: int
+          feat_mean: np.ndarray
+          feat_inv_std: np.ndarray
+          in_quant_scale: float
+          fc1_w_q: np.ndarray
+          fc1_b_q: np.ndarray
+          fc1_eff_scale: float
+          fc2_w_q: np.ndarray
+          fc2_b_q: np.ndarray
+          fc2_eff_scale: float
+          head_w_q: np.ndarray
+          head_b_q: np.ndarray
+          head_eff_scale: float
+          skip_w_q: np.ndarray
+          skip_eff_scale: float
+          fp32_top1_acc: float
+          fp32_bal_acc: float
+          fp32_macro_f1: float
+          int8_top1_acc: float
+          int8_bal_acc: float
+          int8_macro_f1: float
+      def quantize_features_rich_mlp(raw_features: np.ndarray, art: QuantizedRichMlpArtifacts) -> np.ndarray:
+          """Standardize and symmetrically quantize feature matrix (N, F) -> int8 (N, F)...."""
+          ...
+      def simulate_c99_int8_rich_mlp(art: QuantizedRichMlpArtifacts, x_q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+          """Exact INT8/Q24 simulation of RichFeatureResNetMlp matching C99 target...."""
+          ...
+      def train_and_quantize_rich_supcon_mlp(dataset_name: str, subject_id: str, num_channels: int, X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, num_classes: int, hidden1: int, hidden2: int, supcon_epochs: int, finetune_epochs: int, batch_size: int, temperature: float, seed: int) -> tuple[QuantizedRichMlpArtifacts, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+          """Train M14 Feature-Rich SupCon MLP, fold BatchNorm, quantize to INT8, and evaluate...."""
+          ...
+    symbols:
+      - name: RichFeatureResNetMlp
+        kind: class
+        line: 44
+        signature: class RichFeatureResNetMlp(nn.Module)
+      - name: RichFeatureResNetMlp.__init__
+        shortName: __init__
+        kind: method
+        line: 47
+        async: false
+        signature: "def __init__(self, in_features: int, num_classes: int, hidden1: int, hidden2: int, dropout1: float, dropout2: float) -> None"
+      - name: RichFeatureResNetMlp.forward_features
+        shortName: forward_features
+        kind: method
+        line: 73
+        async: false
+        signature: "def forward_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]"
+      - name: RichFeatureResNetMlp.forward
+        shortName: forward
+        kind: method
+        line: 79
+        async: false
+        signature: "def forward(self, x: torch.Tensor) -> torch.Tensor"
+      - name: QuantizedRichMlpArtifacts
+        kind: class
+        line: 85
+        signature: class QuantizedRichMlpArtifacts
+      - name: quantize_features_rich_mlp
+        kind: function
+        line: 123
+        async: false
+        signature: "def quantize_features_rich_mlp(raw_features: np.ndarray, art: QuantizedRichMlpArtifacts) -> np.ndarray"
+      - name: simulate_c99_int8_rich_mlp
+        kind: function
+        line: 133
+        async: false
+        signature: "def simulate_c99_int8_rich_mlp(art: QuantizedRichMlpArtifacts, x_q: np.ndarray) -> tuple[np.ndarray, np.ndarray]"
+      - name: train_and_quantize_rich_supcon_mlp
+        kind: function
+        line: 162
+        async: false
+        signature: "def train_and_quantize_rich_supcon_mlp(dataset_name: str, subject_id: str, num_channels: int, X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, num_classes: int, hidden1: int, hidden2: int, supcon_epochs: int, finetune_epochs: int, batch_size: int, temperature: float, seed: int) -> tuple[QuantizedRichMlpArtifacts, np.ndarray, np.ndarray, np.ndarray, np.ndarray]"
+    contracts:
+      routes: []
+      errors: []
+      concurrency: []
+index:
+  compute_m14_hardware_metrics:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 70
+      signature: "def compute_m14_hardware_metrics(art: QuantizedRichMlpArtifacts, acc_pct: float) -> dict[str, float]"
+  scripts/run_rich_features_m14_benchmark.py#compute_m14_hardware_metrics:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 70
+      signature: "def compute_m14_hardware_metrics(art: QuantizedRichMlpArtifacts, acc_pct: float) -> dict[str, float]"
+  _evaluate_enhanced_lda:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 129
+      signature: "def _evaluate_enhanced_lda(X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, boundaries: list[int], num_classes: int) -> dict[str, float]"
+  scripts/run_rich_features_m14_benchmark.py#_evaluate_enhanced_lda:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 129
+      signature: "def _evaluate_enhanced_lda(X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, boundaries: list[int], num_classes: int) -> dict[str, float]"
+  run_benchmark:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 156
+      signature: def run_benchmark() -> dict[str, Any]
+  scripts/run_rich_features_m14_benchmark.py#run_benchmark:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 156
+      signature: def run_benchmark() -> dict[str, Any]
+  generate_markdown_report:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 356
+      signature: "def generate_markdown_report(results: dict[str, Any]) -> None"
+  scripts/run_rich_features_m14_benchmark.py#generate_markdown_report:
+    - file: scripts/run_rich_features_m14_benchmark.py
+      kind: function
+      line: 356
+      signature: "def generate_markdown_report(results: dict[str, Any]) -> None"
+  _build_dct_basis:
+    - file: src/features/enhanced_features.py
+      kind: function
+      line: 37
+      signature: "def _build_dct_basis(num_bands: int, num_ceps: int) -> np.ndarray"
+  src/features/enhanced_features.py#_build_dct_basis:
+    - file: src/features/enhanced_features.py
+      kind: function
+      line: 37
+      signature: "def _build_dct_basis(num_bands: int, num_ceps: int) -> np.ndarray"
+  EnhancedSemgFeatureExtractor:
+    - file: src/features/enhanced_features.py
+      kind: class
+      line: 45
+      signature: class EnhancedSemgFeatureExtractor
+  src/features/enhanced_features.py#EnhancedSemgFeatureExtractor:
+    - file: src/features/enhanced_features.py
+      kind: class
+      line: 45
+      signature: class EnhancedSemgFeatureExtractor
+  EnhancedSemgFeatureExtractor.__init__:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 50
+      signature: "def __init__(self, epsilon: np.ndarray | Sequence[float], num_channels: int, fs: float) -> None"
+      contracts: &a1
+        errors:
+          - kind: throw
+            errorType: ValueError
+            enclosingSymbol: EnhancedSemgFeatureExtractor.__init__
+            line: 58
+  __init__:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 50
+      signature: "def __init__(self, epsilon: np.ndarray | Sequence[float], num_channels: int, fs: float) -> None"
+      contracts: *a1
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 47
+      signature: "def __init__(self, in_features: int, num_classes: int, hidden1: int, hidden2: int, dropout1: float, dropout2: float) -> None"
+  src/features/enhanced_features.py#EnhancedSemgFeatureExtractor.__init__:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 50
+      signature: "def __init__(self, epsilon: np.ndarray | Sequence[float], num_channels: int, fs: float) -> None"
+      contracts: *a1
+  EnhancedSemgFeatureExtractor._solve_ar4_batch:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 71
+      signature: "def _solve_ar4_batch(windows: np.ndarray) -> np.ndarray"
+  _solve_ar4_batch:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 71
+      signature: "def _solve_ar4_batch(windows: np.ndarray) -> np.ndarray"
+  src/features/enhanced_features.py#EnhancedSemgFeatureExtractor._solve_ar4_batch:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 71
+      signature: "def _solve_ar4_batch(windows: np.ndarray) -> np.ndarray"
+  EnhancedSemgFeatureExtractor.extract:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 91
+      signature: "def extract(self, windows: np.ndarray, chunk_size: int) -> np.ndarray"
+      contracts: &a2
+        errors:
+          - kind: throw
+            errorType: ValueError
+            enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+            line: 94
+          - kind: throw
+            errorType: ValueError
+            enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+            line: 97
+  extract:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 91
+      signature: "def extract(self, windows: np.ndarray, chunk_size: int) -> np.ndarray"
+      contracts: *a2
+  src/features/enhanced_features.py#EnhancedSemgFeatureExtractor.extract:
+    - file: src/features/enhanced_features.py
+      kind: method
+      line: 91
+      signature: "def extract(self, windows: np.ndarray, chunk_size: int) -> np.ndarray"
+      contracts: *a2
+  RichFeatureResNetMlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: class
+      line: 44
+      signature: class RichFeatureResNetMlp(nn.Module)
+  src/models/train_rich_supcon_mlp.py#RichFeatureResNetMlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: class
+      line: 44
+      signature: class RichFeatureResNetMlp(nn.Module)
+  RichFeatureResNetMlp.__init__:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 47
+      signature: "def __init__(self, in_features: int, num_classes: int, hidden1: int, hidden2: int, dropout1: float, dropout2: float) -> None"
+  src/models/train_rich_supcon_mlp.py#RichFeatureResNetMlp.__init__:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 47
+      signature: "def __init__(self, in_features: int, num_classes: int, hidden1: int, hidden2: int, dropout1: float, dropout2: float) -> None"
+  RichFeatureResNetMlp.forward_features:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 73
+      signature: "def forward_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]"
+  forward_features:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 73
+      signature: "def forward_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]"
+  src/models/train_rich_supcon_mlp.py#RichFeatureResNetMlp.forward_features:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 73
+      signature: "def forward_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]"
+  RichFeatureResNetMlp.forward:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 79
+      signature: "def forward(self, x: torch.Tensor) -> torch.Tensor"
+  forward:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 79
+      signature: "def forward(self, x: torch.Tensor) -> torch.Tensor"
+  src/models/train_rich_supcon_mlp.py#RichFeatureResNetMlp.forward:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: method
+      line: 79
+      signature: "def forward(self, x: torch.Tensor) -> torch.Tensor"
+  QuantizedRichMlpArtifacts:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: class
+      line: 85
+      signature: class QuantizedRichMlpArtifacts
+  src/models/train_rich_supcon_mlp.py#QuantizedRichMlpArtifacts:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: class
+      line: 85
+      signature: class QuantizedRichMlpArtifacts
+  quantize_features_rich_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 123
+      signature: "def quantize_features_rich_mlp(raw_features: np.ndarray, art: QuantizedRichMlpArtifacts) -> np.ndarray"
+  src/models/train_rich_supcon_mlp.py#quantize_features_rich_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 123
+      signature: "def quantize_features_rich_mlp(raw_features: np.ndarray, art: QuantizedRichMlpArtifacts) -> np.ndarray"
+  simulate_c99_int8_rich_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 133
+      signature: "def simulate_c99_int8_rich_mlp(art: QuantizedRichMlpArtifacts, x_q: np.ndarray) -> tuple[np.ndarray, np.ndarray]"
+  src/models/train_rich_supcon_mlp.py#simulate_c99_int8_rich_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 133
+      signature: "def simulate_c99_int8_rich_mlp(art: QuantizedRichMlpArtifacts, x_q: np.ndarray) -> tuple[np.ndarray, np.ndarray]"
+  train_and_quantize_rich_supcon_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 162
+      signature: "def train_and_quantize_rich_supcon_mlp(dataset_name: str, subject_id: str, num_channels: int, X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, num_classes: int, hidden1: int, hidden2: int, supcon_epochs: int, finetune_epochs: int, batch_size: int, temperature: float, seed: int) -> tuple[QuantizedRichMlpArtifacts, np.ndarray, np.ndarray, np.ndarray, np.ndarray]"
+  src/models/train_rich_supcon_mlp.py#train_and_quantize_rich_supcon_mlp:
+    - file: src/models/train_rich_supcon_mlp.py
+      kind: function
+      line: 162
+      signature: "def train_and_quantize_rich_supcon_mlp(dataset_name: str, subject_id: str, num_channels: int, X_tr: np.ndarray, tr_lbl: np.ndarray, X_te: np.ndarray, te_lbl: np.ndarray, num_classes: int, hidden1: int, hidden2: int, supcon_epochs: int, finetune_epochs: int, batch_size: int, temperature: float, seed: int) -> tuple[QuantizedRichMlpArtifacts, np.ndarray, np.ndarray, np.ndarray, np.ndarray]"
+semantic_dictionary:
+  routes: []
+  errors:
+    - source: src/features/enhanced_features.py
+      kind: throw
+      errorType: ValueError
+      enclosingSymbol: EnhancedSemgFeatureExtractor.__init__
+      line: 58
+    - source: src/features/enhanced_features.py
+      kind: throw
+      errorType: ValueError
+      enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+      line: 94
+    - source: src/features/enhanced_features.py
+      kind: throw
+      errorType: ValueError
+      enclosingSymbol: EnhancedSemgFeatureExtractor.extract
+      line: 97
+  concurrency: []
+coverage:
+  warnings: []
+  estimated_source_tokens: 15911
+  estimated_context_tokens: 6098
+managed: {}

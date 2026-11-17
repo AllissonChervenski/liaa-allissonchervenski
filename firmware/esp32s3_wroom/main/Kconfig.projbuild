@@ -1,0 +1,107 @@
+menu "sEMG ESP32-S3-WROOM Configuration"
+
+    choice SEMG_ACQ_MODE
+        prompt "Signal Acquisition Mode"
+        default SEMG_ACQ_MODE_HIL_SERIAL
+        help
+            Select how sEMG samples enter the Ping-Pong DMA pipeline on ESP32-S3-WROOM.
+
+        config SEMG_ACQ_MODE_HIL_SERIAL
+            bool "Hardware-in-the-Loop (HIL) Binary Serial (USB/UART)"
+            help
+                Receives framed int16 sEMG chunks from host PC over USB-Serial/JTAG or UART0
+                for deterministic real-silicon parity benchmarking.
+
+        config SEMG_ACQ_MODE_ADC_DMA
+            bool "Internal ESP32-S3 Continuous SAR ADC (DMA @ 2000 Hz)"
+            help
+                Acquires live multi-channel sEMG signals from ADC1 GPIOs using GDMA
+                continuous sampling with hardware oversampling decimation to 2000 Hz.
+
+        config SEMG_ACQ_MODE_SELFTEST_LOOP
+            bool "Built-in Flash Self-Test Loop (2000 Hz Timer)"
+            help
+                Periodically replays the embedded Ozdemir S1 stream from internal Flash
+                via esp_timer to validate Dual-Core FreeRTOS without sensors or PC host.
+    endchoice
+
+    choice SEMG_HIL_TRANSPORT
+        prompt "HIL Serial Transport Peripheral"
+        depends on SEMG_ACQ_MODE_HIL_SERIAL
+        default SEMG_HIL_TRANSPORT_USB_JTAG
+        help
+            Select the hardware serial port used for HIL binary frames and JSON telemetry.
+
+        config SEMG_HIL_TRANSPORT_USB_JTAG
+            bool "Native USB-Serial/JTAG (/dev/ttyACM*)"
+
+        config SEMG_HIL_TRANSPORT_UART0
+            bool "UART0 Bridge (/dev/ttyUSB*)"
+    endchoice
+
+    choice SEMG_DEFAULT_MODEL
+        prompt "Default Classification Engine"
+        default SEMG_MODEL_MICRO_LDA_Q7
+        help
+            Select the default TinyML classifier (can also be switched dynamically via HIL).
+
+        config SEMG_MODEL_MICRO_LDA_Q7
+            bool "Micro-LDA (Q7, Zero-FPU, ~1.3 us)"
+
+        config SEMG_MODEL_CNN1D_INT8
+            bool "CNN-1D (Symmetric INT8, 4.61 KB SRAM Arena, ~123 us)"
+    endchoice
+
+    choice SEMG_DATASET_TOPOLOGY
+        prompt "Trained Model Channel / Class Topology"
+        default SEMG_DATASET_OZDEMIR_4CH
+        help
+            Select pre-trained weights topology stored in Flash (.rodata).
+
+        config SEMG_DATASET_OZDEMIR_4CH
+            bool "Ozdemir et al. (4 Channels, 10 Classes, Fs=2000 Hz)"
+
+        config SEMG_DATASET_NINAPRO_12CH
+            bool "NinaPro DB2 (12 Channels, 50 Classes, Fs=2000 Hz)"
+    endchoice
+
+    config SEMG_RUN_BOOT_SELFTEST
+        bool "Run 5-window Built-in Flash Self-Test at Boot"
+        default y
+        help
+            Runs the embedded 800-sample Ozdemir S1 self-test stream through DSP and
+            both classifiers at startup and logs oracle parity before entering main loop.
+
+    config SEMG_ENABLE_BANDPASS_FILTER
+        bool "Enable Causal Butterworth 20-450 Hz DF2T Bandpass Filter"
+        default y
+        help
+            Applies 4th-order Butterworth SOS bandpass filtering on incoming chunks.
+            Can be toggled dynamically per session in HIL mode via RESET command flags.
+
+    config SEMG_ADC_OVERSAMPLE_FACTOR
+        int "ADC Continuous Hardware Oversample Factor (Min >= 20 kHz total)"
+        depends on SEMG_ACQ_MODE_ADC_DMA
+        range 3 10
+        default 4
+        help
+            ESP32-S3 continuous SAR ADC requires total sample rate >= 20,000 Hz.
+            With 4 channels at 2,000 Hz/ch, factor 4 sets hardware scan rate to 32,000 Hz
+            and decimates by averaging 4 conversions per channel down to exact 2,000 Hz.
+
+    config SEMG_ADC_VREF_MV
+        int "ADC Full-Scale Centered Swing (mV)"
+        depends on SEMG_ACQ_MODE_ADC_DMA
+        range 100 3300
+        default 1650
+        help
+            Analog front-end mid-rail swing mapping +/-2048 raw counts to sEMG mV scale.
+
+    config SEMG_STATUS_LED_GPIO
+        int "Status / Active Gesture Indicator GPIO (-1 to disable)"
+        range -1 48
+        default -1
+        help
+            Optional GPIO driven HIGH when a non-rest gesture (class != 0) is detected.
+
+endmenu
