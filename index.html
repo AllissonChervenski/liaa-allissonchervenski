@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LIAA | Dashboard de Benchmarks sEMG &amp; TinyML para ESP32-S3</title>
   <meta name="description" content="Dashboard comparativo de acurácia, latência, energia, quantizações e redução de canais com índices IRC e IEE para 11 modelos de decodificação sEMG no ESP32-S3.">
-  <link rel="stylesheet" href="css/style.css?v=20261117-4">
+  <link rel="stylesheet" href="css/style.css?v=20261117-5">
   <style>
     /* Fallback crítico: drawer escuro alinhado à direita + backdrop */
     .site-header { position: sticky; top: 0; z-index: 1000; }
@@ -60,6 +60,7 @@
       <button id="navClose" class="nav-drawer-close" type="button" aria-label="Fechar sumário">&times;</button>
     </div>
     <ul class="nav-menu">
+      <li><a href="#videos" class="nav-link">Vídeos: Resumo &amp; Retrospectiva</a></li>
       <li><a href="#dashboard" class="nav-link">1. Dashboard Interativo de Benchmarks</a></li>
       <li><a href="#suavizacao-temporal" class="nav-link">2. Suavização Temporal (P1), CNN-2D (P2), SupCon (P3) &amp; 636 Features (P4)</a></li>
       <li><a href="#teoria-modelos" class="nav-link">3. Fundamentação Arquitetural e Hipóteses de Projeto</a></li>
@@ -156,6 +157,62 @@
   </section>
 
   <main>
+    <!-- ====================================================================
+         VÍDEOS DE APRESENTAÇÃO (RESUMO & RETROSPECTIVA)
+         ==================================================================== -->
+    <section id="videos" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Vídeos do Projeto</h2>
+          <p class="section-lead">
+            Apresentações em vídeo narradas em português (1080p com legendas), organizadas por função para visão técnica rápida ou acompanhamento cronológico.
+          </p>
+        </div>
+
+        <div class="grid-2 video-grid">
+          <article class="card video-card">
+            <div class="video-card-header">
+              <span class="video-role-badge video-role-resumo">Resumo</span>
+              <span class="video-duration-tag">2 min 58 s &bull; Full HD</span>
+            </div>
+            <h3 class="video-card-title">Resumo</h3>
+            <p class="video-card-desc">
+              Síntese técnica completa em ~3 minutos: desafio clínico no ESP32-S3, DSP causal Biquad DF2T, arquitetura M11 Coarse-to-Fine, Passos 1–4 e salto das 636 features (M14) até 71,06% no NinaPro.
+            </p>
+            <div class="video-player-wrap">
+              <video class="project-video" controls preload="metadata" playsinline poster="assets/videos/resumo_poster.jpg">
+                <source src="assets/videos/resumo_projeto.mp4" type="video/mp4" />
+                Seu navegador não suporta reprodução de vídeo HTML5.
+              </video>
+            </div>
+            <div class="video-card-footer">
+              <a href="assets/videos/resumo_projeto.mp4" download class="video-download-link">Baixar MP4 (Resumo) &darr;</a>
+            </div>
+          </article>
+
+          <article class="card video-card">
+            <div class="video-card-header">
+              <span class="video-role-badge video-role-retro">Retrospectiva</span>
+              <span class="video-duration-tag">2 min 01 s &bull; Full HD</span>
+            </div>
+            <h3 class="video-card-title">Retrospectiva</h3>
+            <p class="video-card-desc">
+              Linha do tempo cronológica de 52 dias (26 Set &rarr; 17 Nov): governança SDD/TDD, estudo de quantização 16-bit, gargalo dos ~60%, validação QEMU/HIL, a virada dos Passos 1–4 e lições aprendidas.
+            </p>
+            <div class="video-player-wrap">
+              <video class="project-video" controls preload="metadata" playsinline poster="assets/videos/retrospectiva_poster.jpg">
+                <source src="assets/videos/retrospectiva_semestre.mp4" type="video/mp4" />
+                Seu navegador não suporta reprodução de vídeo HTML5.
+              </video>
+            </div>
+            <div class="video-card-footer">
+              <a href="assets/videos/retrospectiva_semestre.mp4" download class="video-download-link">Baixar MP4 (Retrospectiva) &darr;</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================================================================
          1. DASHBOARD PRINCIPAL COM GRÁFICOS (CARDS COM MINIATURAS EXPANSÍVEIS)
          ==================================================================== -->
