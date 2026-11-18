@@ -499,6 +499,244 @@ function initCharts() {
       }
     }
   });
+
+  // 9. Hardware vs. Emulador: Latência Média e p99 (Escala Log, µs)
+  registerAndRenderChart("chartHwLatencyLog", {
+    title: "Latência de Execução: Emulador QEMU vs. Hardware Físico Real (ESP32-S3-WROOM-1)",
+    desc: "Comparação em escala logarítmica (µs) — Ozdemir 4CH: QEMU Bare-Metal vs. QEMU FreeRTOS Dual-Core vs. Silício Físico Real (93.600 janelas/modelo).",
+    config: {
+      type: "bar",
+      data: {
+        labels: ["Micro-LDA Q7 (Média)", "Micro-LDA Q7 (p99)", "CNN-1D INT8 (Média)", "CNN-1D INT8 (p99)"],
+        datasets: [
+          {
+            label: "QEMU Bare-Metal (CCOUNT Ideal) [µs]",
+            data: [1.27, null, 123.28, 174.65],
+            backgroundColor: "rgba(37, 99, 235, 0.8)",
+            borderColor: "rgb(37, 99, 235)",
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: "QEMU FreeRTOS Dual-Core (Core 1) [µs]",
+            data: [8.58, 18.50, 157.34, 277.72],
+            backgroundColor: "rgba(13, 148, 136, 0.8)",
+            borderColor: "rgb(13, 148, 136)",
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: "ESP32-S3-WROOM Físico Real (40 Suj.) [µs]",
+            data: [330.22, 347.55, 6575.07, 6610.04],
+            backgroundColor: "rgba(220, 38, 38, 0.85)",
+            borderColor: "rgb(220, 38, 38)",
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                if (ctx.parsed.y === null) return `${ctx.dataset.label}: N/A`;
+                return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} µs`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            type: "logarithmic",
+            min: 1,
+            max: 15000,
+            title: { display: true, text: "Latência (µs) — Escala Logarítmica" }
+          }
+        }
+      }
+    }
+  });
+
+  // 10. Hardware vs. Emulador: Uso do Orçamento de Tempo Real (% do Stride de 50 ms)
+  registerAndRenderChart("chartHwCpuBudget", {
+    title: "Uso do Orçamento de Tempo Real (% do Stride de 50.000 µs)",
+    desc: "Percentual da janela de 50 ms consumida por inferência. Mesmo no silício físico sem SIMD PIE, a CNN-1D consome apenas 13,15% (86,85% livres).",
+    config: {
+      type: "bar",
+      data: {
+        labels: ["QEMU Bare-Metal", "QEMU FreeRTOS Dual-Core", "ESP32-S3 Físico Real (40 Suj.)"],
+        datasets: [
+          {
+            label: "Micro-LDA Q7 (% de 50 ms)",
+            data: [0.0626, 0.0172, 0.6604],
+            backgroundColor: "rgba(37, 99, 235, 0.8)",
+            borderRadius: 4
+          },
+          {
+            label: "CNN-1D INT8 (% de 50 ms)",
+            data: [0.2466, 0.3147, 13.1501],
+            backgroundColor: "rgba(217, 119, 6, 0.85)",
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}% (${(ctx.parsed.y * 500).toFixed(2)} µs)`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 16,
+            title: { display: true, text: "Ocupação do Stride de 50 ms (%)" }
+          }
+        }
+      }
+    }
+  });
+
+  // 11. Estabilidade da Latência por Sujeito (S1-S40) no Silício Físico vs. QEMU
+  const subjects40 = Array.from({ length: 40 }, (_, i) => `S${i + 1}`);
+  const physLdaLat = [329.82, 331.72, 327.22, 332.74, 333.88, 330.38, 329.48, 329.0, 331.23, 328.94, 330.2, 330.67, 330.18, 329.43, 330.27, 331.06, 330.12, 328.65, 329.79, 331.48, 330.86, 329.85, 328.46, 330.3, 329.73, 329.01, 331.31, 330.94, 330.17, 332.3, 330.11, 330.4, 329.48, 330.06, 327.95, 331.78, 332.39, 326.89, 329.96, 330.53];
+  const physCnnLat = [6571.08, 6577.58, 6568.52, 6581.22, 6577.83, 6571.46, 6565.94, 6566.26, 6569.83, 6557.44, 6576.37, 6581.5, 6568.59, 6584.67, 6567.48, 6570.09, 6590.61, 6574.09, 6574.57, 6583.96, 6583.54, 6577.05, 6576.89, 6573.22, 6588.25, 6577.06, 6578.55, 6585.0, 6576.39, 6584.08, 6567.36, 6577.41, 6578.31, 6568.37, 6568.84, 6578.41, 6586.82, 6568.64, 6560.2, 6569.41];
+
+  registerAndRenderChart("chartHwPopLatency", {
+    title: "Estabilidade da Latência no Silício Físico Real (S1 a S40) vs. QEMU FreeRTOS",
+    desc: "Variância mínima de latência entre os 40 sujeitos no ESP32-S3 físico (2.340 janelas/sujeito) comparada às linhas base do QEMU.",
+    config: {
+      type: "line",
+      data: {
+        labels: subjects40,
+        datasets: [
+          {
+            label: "ESP32-S3 Físico — CNN-1D INT8 [µs]",
+            data: physCnnLat,
+            borderColor: "rgb(220, 38, 38)",
+            backgroundColor: "rgba(220, 38, 38, 0.12)",
+            borderWidth: 2,
+            pointRadius: 2.5,
+            tension: 0.15
+          },
+          {
+            label: "ESP32-S3 Físico — Micro-LDA Q7 [µs]",
+            data: physLdaLat,
+            borderColor: "rgb(37, 99, 235)",
+            backgroundColor: "rgba(37, 99, 235, 0.12)",
+            borderWidth: 2,
+            pointRadius: 2.5,
+            tension: 0.15
+          },
+          {
+            label: "QEMU FreeRTOS — CNN-1D INT8 (157,34 µs)",
+            data: Array(40).fill(157.34),
+            borderColor: "rgb(217, 119, 6)",
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0
+          },
+          {
+            label: "QEMU FreeRTOS — Micro-LDA Q7 (8,58 µs)",
+            data: Array(40).fill(8.58),
+            borderColor: "rgb(13, 148, 136)",
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} µs`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            type: "logarithmic",
+            min: 5,
+            max: 10000,
+            title: { display: true, text: "Latência (µs) — Escala Log" }
+          },
+          x: {
+            ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }
+          }
+        }
+      }
+    }
+  });
+
+  // 12. Acurácia Top-1 Populacional (S1-S40) Executada no Hardware Físico Real
+  const physLdaAcc = [81.2, 36.32, 37.95, 32.26, 34.83, 43.68, 49.15, 45.85, 42.78, 44.19, 46.07, 38.29, 54.23, 41.62, 58.97, 51.84, 32.91, 36.2, 48.76, 40.38, 35.56, 46.54, 38.12, 39.83, 41.03, 49.15, 44.66, 40.51, 32.82, 33.59, 41.15, 33.46, 33.29, 42.39, 31.54, 42.48, 25.64, 36.62, 48.72, 49.23];
+  const physCnnAcc = [80.81, 38.25, 37.01, 35.34, 32.22, 45.3, 44.96, 50.73, 45.38, 49.91, 39.62, 33.33, 46.45, 37.31, 61.37, 44.44, 19.62, 36.62, 49.53, 33.33, 29.4, 33.03, 28.93, 31.62, 31.11, 43.93, 32.22, 33.85, 34.96, 24.7, 40.51, 27.69, 30.68, 48.59, 39.49, 43.38, 26.75, 37.95, 51.75, 40.6];
+
+  registerAndRenderChart("chartHwPopAccuracy", {
+    title: "Acurácia Top-1 Populacional (S1–S40) Executada no ESP32-S3 Físico Real",
+    desc: "100,00% bit-exata frente ao emulador QEMU/Host: Micro-LDA Q7 (média 42,10% ± 9,34%) vs. CNN-1D INT8 (média 39,32% ± 10,74%).",
+    config: {
+      type: "bar",
+      data: {
+        labels: subjects40,
+        datasets: [
+          {
+            label: "Micro-LDA Q7 — Silício Real [%]",
+            data: physLdaAcc,
+            backgroundColor: "rgba(37, 99, 235, 0.78)",
+            borderRadius: 2
+          },
+          {
+            label: "CNN-1D INT8 — Silício Real [%]",
+            data: physCnnAcc,
+            backgroundColor: "rgba(13, 148, 136, 0.78)",
+            borderRadius: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 100,
+            title: { display: true, text: "Acurácia Top-1 (%)" }
+          },
+          x: {
+            ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }
+          }
+        }
+      }
+    }
+  });
 }
 
 function registerAndRenderChart(canvasId, meta) {

@@ -2616,6 +2616,66 @@ uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
             </table>
           </div>
         </div>
+
+        <!-- Gráficos Comparativos: Emulador QEMU vs. Hardware Físico Real -->
+        <div class="section-header" style="margin-top: 2.5rem; margin-bottom: 1.25rem;">
+          <h3 class="card-title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">Gráficos Comparativos: Emulador QEMU vs. Silício Real (ESP32-S3-WROOM-1)</h3>
+          <p class="card-text" style="margin-bottom: 0;">Clique em qualquer gráfico para expandir em tela cheia. Dados de 187.200 inferências físicas reais em 40 sujeitos (Ozdemir S1–S40) comparados aos benchmarks ciclo-exatos do QEMU.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Latência: Emulador QEMU vs. Silício Físico (µs)</h3>
+                <p class="chart-desc">Escala logarítmica comparando Média e p99 entre Bare-Metal QEMU, FreeRTOS QEMU e ESP32-S3 Real.</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartHwLatencyLog"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Consumo do Orçamento de Tempo Real (% de 50 ms)</h3>
+                <p class="chart-desc">Fração da janela de stride (50.000 µs) ocupada por janela em cada ambiente (limite = 100%).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartHwCpuBudget"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Latência Real por Sujeito (S1–S40) vs. QEMU</h3>
+                <p class="chart-desc">Estabilidade determinística no silício físico (2.340 janelas/sujeito) contra a referência QEMU FreeRTOS.</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartHwPopLatency"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card expandable">
+            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="chart-title">Acurácia Top-1 por Sujeito (S1–S40) no Silício Real</h3>
+                <p class="chart-desc">100,00% bit-exata vs. QEMU/Host: Micro-LDA Q7 (42,10% média) vs. CNN-1D INT8 (39,32% média).</p>
+              </div>
+              <span class="expand-hint">&#x2922; Expandir</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chartHwPopAccuracy"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -2829,6 +2889,6 @@ uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
   </footer>
 
   <!-- Script de Inicialização dos Gráficos e Abas -->
-  <script src="js/dashboard.js?v=20261117-4"></script>
+  <script src="js/dashboard.js?v=20261118-1"></script>
 </body>
 </html>
