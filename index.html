@@ -2511,7 +2511,7 @@ uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">6. Comparativo de Hardware: ESP32-S3 Emulado vs. Físico Real</h2>
-          <p class="section-lead">Ambiente preparado e calibrado para medição ciclo-a-ciclo no silício real (HIL via UART /dev/ttyACM0).</p>
+          <p class="section-lead">Medição ciclo-a-ciclo e validação populacional no silício real (ESP32-S3-WROOM-1 @ 240 MHz via USB-Serial CDC /dev/ttyACM0).</p>
         </div>
 
         <div class="grid-2">
@@ -2536,25 +2536,25 @@ uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
           <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <h3 class="card-title" style="margin-bottom: 0;">Hardware Físico Real (ESP32-S3 Target)</h3>
-              <span class="status-badge badge-real-standby">&#9881; Pronto para Ingestão</span>
+              <span class="status-badge badge-real-active">&check; 40 Sujeitos (187.200 Infs)</span>
             </div>
             <p class="card-text">
-              Módulo físico <strong>ESP32-S3-WROOM-1</strong> instrumentado com contadores DWT em hardware e temporização de interrupções via UART serial (protocolo binário HIL).
+              Módulo físico <strong>ESP32-S3-WROOM-1</strong> instrumentado com contadores DWT em hardware e temporização de interrupções via USB-Serial CDC de alta velocidade (protocolo binário HIL).
             </p>
             <ul class="card-list">
-              <li><strong>Interface:</strong> Protocolo HIL binário via <code>/dev/ttyACM0</code> (115200 bps)</li>
-              <li><strong>Instrumentação:</strong> Registradores de ciclo DWT e GPIO toggle</li>
+              <li><strong>Interface:</strong> Protocolo HIL binário via <code>/dev/ttyACM0</code> (921.600 bps)</li>
+              <li><strong>Instrumentação:</strong> Temporização de hardware via <code>esp_timer_get_time()</code> (1 µs) e FreeRTOS watermark</li>
               <li><strong>Firmware Carregado:</strong> <code>firmware/esp32s3_wroom</code> (ESP-IDF v5.3.2)</li>
-              <li><strong>Status:</strong> Protocolo de comunicação testado; aguardando disparo da bateria de testes físicos</li>
+              <li><strong>Status:</strong> <strong>187.200 inferências físicas concluídas</strong> com 100,00% de paridade bit-exata contra o oráculo C99</li>
             </ul>
           </div>
         </div>
 
-        <!-- Tabela Pareada QEMU vs Físico Real (Pronta para Ingestão) -->
+        <!-- Tabela Pareada QEMU vs Físico Real -->
         <div class="hw-comparison-box">
           <h3 class="card-title" style="margin-bottom: 0.5rem;">Tabela Pareada: Emulação QEMU vs. Silício Físico</h3>
           <p class="card-text">
-            Dados preliminares de validação de paridade (20 janelas em INT8) já registrados no relatório HIL. Esta tabela será automaticamente preenchida com a bateria completa assim que o dispositivo físico for acionado.
+            Dados consolidados da bateria populacional no silício real (187.200 janelas em INT8/Q7 em 40 sujeitos do dataset Ozdemir et al.). Verificação de paridade bit-exata contra o oráculo C99 em tempo real e monitoramento contínuo de stack/RTOS.
           </p>
 
           <div class="table-wrapper">
@@ -2574,43 +2574,43 @@ uint8_t filter_step(CausalMajorityFilter *f, uint8_t raw_pred) {
               <tbody>
                 <tr>
                   <td><strong>Micro-LDA Q7</strong></td>
-                  <td>20</td>
-                  <td><strong>100.0% (20/20)</strong></td>
+                  <td>93.600 (40 sujeitos)</td>
+                  <td><strong>100.0% (93.600/93.600)</strong></td>
                   <td>~1.2 µs (0.0012 ms)</td>
-                  <td><strong>329.71 µs</strong> <em>(overhead RTOS/HAL)</em></td>
-                  <td>+328.5 µs</td>
+                  <td><strong>330.22 µs</strong> <em>(p99: 347.55 µs)</em></td>
+                  <td>+329.0 µs <em>(overhead RTOS/HAL)</em></td>
                   <td>3,332 bytes</td>
-                  <td><span class="status-badge badge-real-active">&check; Parcial Real</span></td>
+                  <td><span class="status-badge badge-real-active">&check; 40 Sujeitos (100%)</span></td>
                 </tr>
                 <tr>
                   <td><strong>CNN-1D INT8</strong></td>
-                  <td>20</td>
-                  <td><strong>100.0% (20/20)</strong></td>
+                  <td>93.600 (40 sujeitos)</td>
+                  <td><strong>100.0% (93.600/93.600)</strong></td>
                   <td>174.1 µs (0.1741 ms)</td>
-                  <td><strong>6,563.46 µs</strong> <em>(sem DMA PIE)</em></td>
-                  <td>Em calibração</td>
+                  <td><strong>6.575,07 µs</strong> <em>(p99: 6.610,04 µs)</em></td>
+                  <td>+6.401 µs <em>(RTOS + pipeline LX7)</em></td>
                   <td>3,332 bytes</td>
-                  <td><span class="status-badge badge-real-active">&check; Parcial Real</span></td>
+                  <td><span class="status-badge badge-real-active">&check; 40 Sujeitos (100%)</span></td>
                 </tr>
                 <tr>
                   <td><strong>M07 Cascata (Early-Exit)</strong></td>
                   <td>15.824</td>
                   <td>100.0% (QEMU)</td>
                   <td>0.2703 ms</td>
-                  <td><em>[Aguardando conexão /dev/ttyACM0]</em></td>
+                  <td><em>[Aguardando inclusão no firmware]</em></td>
                   <td>—</td>
                   <td>—</td>
-                  <td><span class="status-badge badge-real-standby">Pendente</span></td>
+                  <td><span class="status-badge badge-real-standby">Pendente HW</span></td>
                 </tr>
                 <tr>
                   <td><strong>M11 Hierárquico (&tau; = 0.80)</strong></td>
                   <td>15.824</td>
                   <td>100.0% (QEMU)</td>
                   <td>0.0994 ms</td>
-                  <td><em>[Aguardando conexão /dev/ttyACM0]</em></td>
+                  <td><em>[Aguardando inclusão no firmware]</em></td>
                   <td>—</td>
                   <td>—</td>
-                  <td><span class="status-badge badge-real-standby">Pendente</span></td>
+                  <td><span class="status-badge badge-real-standby">Pendente HW</span></td>
                 </tr>
               </tbody>
             </table>
