@@ -1,0 +1,55 @@
+{
+  "subject_id": "S29",
+  "timestamp": "2026-11-18 02:44:57",
+  "models": {
+    "micro_lda_q7": {
+      "num_windows": 2340,
+      "raw_top1_pct": 32.82,
+      "raw_balanced_pct": 32.82,
+      "raw_macro_f1_pct": 30.84,
+      "vote3_top1_pct": 32.44,
+      "vote3_balanced_pct": 32.44,
+      "vote3_macro_f1_pct": 30.31,
+      "latency_us": {
+        "mean": 330.17,
+        "std": 4.89,
+        "min": 318.96,
+        "p50": 330.03,
+        "p90": 335.14,
+        "p95": 337.23,
+        "p99": 348.91,
+        "max": 359.07
+      },
+      "stack_min_free_bytes": {
+        "core0_acq": 2272,
+        "core1_inf": 3332
+      },
+      "elapsed_sec": 10.76
+    },
+    "cnn1d_int8": {
+      "num_windows": 2340,
+      "raw_top1_pct": 34.96,
+      "raw_balanced_pct": 34.96,
+      "raw_macro_f1_pct": 28.66,
+      "vote3_top1_pct": 34.57,
+      "vote3_balanced_pct": 34.57,
+      "vote3_macro_f1_pct": 28.22,
+      "latency_us": {
+        "mean": 6576.39,
+        "std": 25.21,
+        "min": 6498.15,
+        "p50": 6583.5,
+        "p90": 6603.34,
+        "p95": 6606.25,
+        "p99": 6611.9,
+        "max": 6624.09
+      },
+      "stack_min_free_bytes": {
+        "core0_acq": 2272,
+        "core1_inf": 3332
+      },
+      "elapsed_sec": 25.77
+    }
+  },
+  "total_elapsed_sec": 36.82
+}

@@ -21,6 +21,7 @@ logs/
 
 data/raw/
 data/derived/
+reports/video/
 *.patch
 *.bak
 .env
