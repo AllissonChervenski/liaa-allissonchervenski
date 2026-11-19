@@ -67,6 +67,7 @@
       <li><a href="#insights" class="nav-link">4. Outros Insights do Repositório e Por Que Estão Aqui</a></li>
       <li><a href="#dashboard" class="nav-link">5. Gráficos Completos com Detalhamento Técnico Expandido</a></li>
       <li><a href="#tabelas-hierarquia" class="nav-link">6. Tabelas de Benchmarks: Modelos &gt; Canais &gt; Quantização</a></li>
+      <li><a href="#relatorio-latencias" class="nav-link">6.1 Relatório Consolidado de Latências (ESP32-S3 &amp; QEMU)</a></li>
       <li><a href="#processo-evolucao" class="nav-link">7. Passo a Passo do Processo &amp; Evolução no Semestre</a></li>
       <li><a href="#videos" class="nav-link">8. Vídeos do Projeto (Resumo &amp; Retrospectiva)</a></li>
       <li><a href="https://github.com/AllissonChervenski/liaa-allissonchervenski" target="_blank" rel="noopener" class="nav-link nav-link-external">GitHub do Projeto &#x2197;</a></li>
@@ -1664,6 +1665,102 @@
         <div id="benchmarkHierarchyRoot">
           <p class="card-text">Carregando hierarquia de benchmarks (Modelos &gt; Canais &gt; Quantização)...</p>
         </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         6.1 RELATÓRIO CONSOLIDADO DE LATÊNCIAS NOS BENCHMARKS (ESP32 & QEMU)
+         ==================================================================== -->
+    <section id="relatorio-latencias" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="badge badge-info" style="margin-bottom:0.45rem;">Silício Real ESP32-S3 &bull; Emulador QEMU &bull; Fim-a-Fim (Vote-K)</span>
+          <h2 class="section-title">6.1 Relatório Consolidado de Latências nos Benchmarks (ESP32-S3 &amp; QEMU)</h2>
+          <p class="section-lead">
+            Síntese de todas as latências medidas no projeto &mdash; da inferência pura no <strong>ESP32-S3 físico (@ 240 MHz)</strong> e ciclos <code>CCOUNT</code> no <strong>QEMU</strong> até o atraso algorítmico completo para classificar e estabilizar um gesto em próteses mioelétricas.
+            <a href="reports/relatorio_latencias_benchmarks_esp32.md" target="_blank" rel="noopener">Abrir relatório completo em Markdown &#x2197;</a>
+          </p>
+        </div>
+
+        <div class="kpi-grid" style="margin-bottom:1.5rem;">
+          <div class="kpi-card">
+            <span class="kpi-label">Menor Latência Física (Core 1)</span>
+            <strong class="kpi-value">178,93 &mu;s</strong>
+            <span class="kpi-sub">M01 Micro-LDA Q7 &bull; Khushaba 2CH (0,18 ms)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Maior Latência Física (Core 1)</span>
+            <strong class="kpi-value">49,96 ms</strong>
+            <span class="kpi-sub">M03 DTW O(N&sup2;) &bull; NinaPro 12CH (bem abaixo de 300 ms)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">CNN-1D INT8 no Silício (2CH &rarr; 12CH)</span>
+            <strong class="kpi-value">5,90 &ndash; 14,15 ms</strong>
+            <span class="kpi-sub">p99: 5,93 ms (2CH) / 14,25 ms (12CH)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Execução de Gesto (Vote-3, 4CH)</span>
+            <strong class="kpi-value">~100,3 &ndash; 106,6 ms</strong>
+            <span class="kpi-sub">+100 ms do voto + inferência (limite clínico: 200&ndash;300 ms)</span>
+          </div>
+        </div>
+
+        <article class="card" style="margin-bottom:1.5rem;">
+          <h3 class="card-title">Latência Média no ESP32-S3 Físico @ 240 MHz (10 Modelos &times; 4 Datasets, 101 Sujeitos)</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Modelo</th>
+                  <th>Khushaba (2CH, 10 cls)</th>
+                  <th>Ozdemir (4CH, 10 cls)</th>
+                  <th>NinaPro DB3 (12CH, 50 cls)</th>
+                  <th>NinaPro DB2 (12CH, 50 cls)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>M01</code></td><td><strong>M01_micro_lda_q7</strong></td><td><strong>178,93 &mu;s</strong></td><td><strong>341,05 &mu;s</strong></td><td><strong>1.049,62 &mu;s</strong></td><td><strong>1.051,83 &mu;s</strong></td></tr>
+                <tr><td><code>M02</code></td><td><strong>M02_cnn1d_int8</strong></td><td><strong>5.901,15 &mu;s</strong></td><td><strong>7.549,96 &mu;s</strong></td><td><strong>14.133,79 &mu;s</strong></td><td><strong>14.148,59 &mu;s</strong></td></tr>
+                <tr><td><code>M03</code></td><td><strong>M03_dtw_classic_on2</strong></td><td>3.955,65 &mu;s</td><td>5.374,39 &mu;s</td><td>48.364,25 &mu;s</td><td>49.957,65 &mu;s</td></tr>
+                <tr><td><code>M04</code></td><td><strong>M04_dtw_sakoe_chiba</strong></td><td>1.322,73 &mu;s</td><td>1.812,08 &mu;s</td><td>12.684,94 &mu;s</td><td>13.071,19 &mu;s</td></tr>
+                <tr><td><code>M05</code></td><td><strong>M05_dtw_lb_keogh</strong></td><td>491,28 &mu;s</td><td>788,72 &mu;s</td><td>5.973,47 &mu;s</td><td>4.758,16 &mu;s</td></tr>
+                <tr><td><code>M06</code></td><td><strong>M06_hybrid_lda_cnn_head</strong></td><td>5.916,77 &mu;s</td><td>7.562,99 &mu;s</td><td>14.120,91 &mu;s</td><td>14.137,42 &mu;s</td></tr>
+                <tr><td><code>M07</code></td><td><strong>M07_hybrid_lda_cnn_cascade</strong></td><td>3.898,32 &mu;s</td><td>3.313,55 &mu;s</td><td>11.572,05 &mu;s</td><td>12.282,12 &mu;s</td></tr>
+                <tr><td><code>M08</code></td><td><strong>M08_hybrid_dtw_lda</strong></td><td>839,67 &mu;s</td><td>1.197,41 &mu;s</td><td>2.646,44 &mu;s</td><td>2.651,23 &mu;s</td></tr>
+                <tr><td><code>M09</code></td><td><strong>M09_hybrid_dtw_cnn</strong></td><td>6.562,05 &mu;s</td><td>8.399,12 &mu;s</td><td>15.720,46 &mu;s</td><td>15.741,49 &mu;s</td></tr>
+                <tr><td><code>M10</code></td><td><strong>M10_hybrid_dtw_lda_cnn</strong></td><td>3.505,72 &mu;s</td><td>4.750,11 &mu;s</td><td>9.785,67 &mu;s</td><td>10.516,13 &mu;s</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="card-text" style="margin-top:0.85rem;">
+            <strong>Nenhum modelo ultrapassou 300 ms (nem 200 ms)</strong> em inferência pura. No benchmark populacional de 40 sujeitos em Flash no Ozdemir (187.200 inferências), a estabilidade temporal foi virtualmente livre de jitter: <code>micro_lda_q7</code> com média de <strong>330,22 &mu;s</strong> (p99: <strong>347,55 &mu;s</strong>) e <code>cnn1d_int8</code> com média de <strong>6.575,07 &mu;s</strong> (p99: <strong>6.610,04 &mu;s</strong>).
+          </p>
+        </article>
+
+        <article class="card">
+          <h3 class="card-title">Latência para Classificar e Executar o Gesto (Pipeline + Voto Majoritário <em>K</em>)</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Política de Voto (<em>K</em>)</th>
+                  <th>Atraso Algorítmico (<em>K</em>&minus;1)&times;50 ms</th>
+                  <th>Total Ozdemir 4CH (Micro-LDA)</th>
+                  <th>Total Ozdemir 4CH (CNN-1D)</th>
+                  <th>Status Frente à Barreira de 200&ndash;300 ms</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>K=1</strong> (Sem suavização)</td><td>0 ms</td><td>~0,33 ms</td><td>~6,58 ms</td><td>Instantâneo (maior risco de jitter transitório)</td></tr>
+                <tr><td><strong>K=3</strong> (Padrão Firmware)</td><td>+100 ms</td><td><strong>~100,3 ms</strong></td><td><strong>~106,6 ms</strong></td><td>Excelente para controle rápido (&lt; 200 ms)</td></tr>
+                <tr><td><strong>K=5</strong> (Produção)</td><td>+200 ms</td><td><strong>~200,3 ms</strong></td><td><strong>~207,6 ms</strong></td><td>Equilíbrio ótimo entre estabilidade e resposta</td></tr>
+                <tr><td><strong>K=7</strong></td><td>+300 ms</td><td>~300,3 ms</td><td>~307,6 ms</td><td>Atinge a barreira de 300 ms</td></tr>
+                <tr><td><strong>K=9</strong></td><td>+400 ms</td><td>~400,3 ms</td><td>~407,6 ms</td><td>Ultrapassa 300 ms (não recomendado)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
       </div>
     </section>
 
