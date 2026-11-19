@@ -68,6 +68,7 @@
       <li><a href="#dashboard" class="nav-link">5. Gráficos Completos com Detalhamento Técnico Expandido</a></li>
       <li><a href="#tabelas-hierarquia" class="nav-link">6. Tabelas de Benchmarks: Modelos &gt; Canais &gt; Quantização</a></li>
       <li><a href="#relatorio-latencias" class="nav-link">6.1 Relatório Consolidado de Latências (ESP32-S3 &amp; QEMU)</a></li>
+      <li><a href="#guia-metricas-validade" class="nav-link">6.2 Guia de Métricas, Fórmulas, Interpretação, Valor &amp; Ameaças à Validade</a></li>
       <li><a href="#processo-evolucao" class="nav-link">7. Passo a Passo do Processo &amp; Evolução no Semestre</a></li>
       <li><a href="#videos" class="nav-link">8. Vídeos do Projeto (Resumo &amp; Retrospectiva)</a></li>
       <li><a href="https://github.com/AllissonChervenski/liaa-allissonchervenski" target="_blank" rel="noopener" class="nav-link nav-link-external">GitHub do Projeto &#x2197;</a></li>
@@ -1707,8 +1708,8 @@
 
         <article class="card" style="margin-bottom:1.5rem;">
           <h3 class="card-title">Latência Média no ESP32-S3 Físico @ 240 MHz (10 Modelos &times; 4 Datasets, 101 Sujeitos)</h3>
-          <div class="table-responsive">
-            <table class="data-table">
+          <div class="table-wrapper">
+            <table>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -1740,8 +1741,8 @@
 
         <article class="card">
           <h3 class="card-title">Latência para Classificar e Executar o Gesto (Pipeline + Voto Majoritário <em>K</em>)</h3>
-          <div class="table-responsive">
-            <table class="data-table">
+          <div class="table-wrapper">
+            <table>
               <thead>
                 <tr>
                   <th>Política de Voto (<em>K</em>)</th>
@@ -1761,6 +1762,369 @@
             </table>
           </div>
         </article>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         6.2 GUIA COMPLETO DE MÉTRICAS, FÓRMULAS, INTERPRETAÇÃO,
+             VALOR CIENTÍFICO E AMEAÇAS À VALIDADE
+         ==================================================================== -->
+    <section id="guia-metricas-validade" class="content-section">
+      <div class="container">
+        <div class="section-header">
+          <span class="badge badge-warning" style="margin-bottom:0.45rem;">Rigor Metodológico &bull; Transparência Científica &bull; Autocrítica</span>
+          <h2 class="section-title">6.2 Guia Completo de Métricas, Fórmulas, Interpretação dos Resultados, Valor Científico e Ameaças à Validade</h2>
+          <p class="section-lead">
+            Explicação detalhada de <strong>cada métrica exibida nas tabelas, gráficos e textos</strong> deste estudo (nome por extenso, tradução do inglês, equação matemática, o que mede, modelos líderes e significado prático), acompanhada de uma análise honesta de <strong>por que certos modelos dominam</strong>, <strong>por que este trabalho tem valor</strong> e <strong>quais pontos negativos e ameaças à validade podem comprometer ou anular seus resultados</strong>.
+            <a href="reports/guia_metricas_interpretacao_e_validade.md" target="_blank" rel="noopener">Abrir documento completo em Markdown &#x2197;</a>
+          </p>
+        </div>
+
+        <!-- 6.2.1 Dicionário Completo de Todas as Métricas -->
+        <h3 class="subsection-heading">6.2.1 Todas as Métricas das Tabelas, Gráficos e Textos: Significado, Fórmula e Modelos em Destaque</h3>
+
+        <div class="metric-guide-grid">
+          <!-- Métrica 1: Acurácia Top-1 -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">1. Acurácia Top-1 (<code>Top-1 Accuracy</code> / <code>Top-1 LOTO</code> &plusmn; <code>DP</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Acurácia de Primeira Escolha (%) sob <em>Leave-One-Trial-Out</em> (deixando repetições inteiras fora) &plusmn; Desvio Padrão (<em>Standard Deviation</em>).</span>
+            </div>
+            <div class="metric-eq-box">Top-1 (%) = (1 / N) &times; &Sigma;<sub>i=1..N</sub> I(&ycirc;<sub>i</sub> = y<sub>i</sub>) &times; 100<br>DP = &radic;[ (1 / (S&minus;1)) &times; &Sigma;<sub>s=1..S</sub> (Acc<sub>s</sub> &minus; Acc&#772;)&sup2; ]</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> É o nível global de acerto do modelo ao tentar acertar o gesto na primeira tentativa em cada dataset. O <code>&plusmn; DP</code> mede o quanto o desempenho varia entre diferentes pessoas.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> Silício físico: <strong>M02 CNN-1D</strong> no Khushaba (77,38&plusmn;4,40%), <strong>M07 Cascata</strong> no Ozdemir (77,87&plusmn;4,84%) e <strong>M09 DTW+CNN</strong> no NinaPro DB2 (67,66&plusmn;8,06%) e DB3 Amputados (49,47&plusmn;12,96%). Simulação C99: <strong>M14</strong> chega a 68,59% (K=5) / 71,06% (K=9) no DB2 S4 e 76,36% médios no Ozdemir 2CH.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Em 10 gestos, modelos leves já oferecem controle funcional (&gt;75%). Em 50 gestos e amputados, arquiteturas profundas/híbridas tornam-se obrigatórias &mdash; mas Top-1 isolada pode ser inflada por classes frequentes (como repouso).</div>
+          </article>
+
+          <!-- Métrica 2: Acurácia Balanceada -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">2. Acurácia Balanceada (<code>Balanced Acc</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Balanced Accuracy</em> = Acurácia Balanceada por Classe (%).</span>
+            </div>
+            <div class="metric-eq-box">Balanced Acc (%) = (1 / C) &times; &Sigma;<sub>c=1..C</sub> [ VP<sub>c</sub> / (VP<sub>c</sub> + FN<sub>c</sub>) ] &times; 100 = Média(Recall<sub>c</sub>)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Dá o <strong>mesmo peso</strong> a todos os <em>C</em> gestos (sejam 10 ou 50), impedindo que um modelo que apenas "chuta repouso" pareça preciso em datasets desbalanceados.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> No NinaPro DB2 (S4), <strong>M14</strong> lidera (61,96% em K=5; 64,47% em K=9), seguido por <strong>M01 Micro-LDA int16</strong> (51,03%). No Ozdemir 4CH, M01/M02/M07 igualam ~77&ndash;82%, confirmando equilíbrio das 10 classes.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Quando <code>Balanced Acc</code> fica muito abaixo da <code>Top-1</code> (ex.: NinaPro 12CH em <code>int8</code>: 53,11% Top-1 vs. 45,98% Balanced Acc), revela que o modelo está errando gestos finos de dedos.</div>
+          </article>
+
+          <!-- Métrica 3: Macro-F1 -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">3. Macro-F1 (<code>Macro-Averaged F1-Score</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Pontuação F1 Média Macro (%) &mdash; média harmônica entre Precisão (<em>Precision</em>) e Revocação (<em>Recall</em>) de cada gesto.</span>
+            </div>
+            <div class="metric-eq-box">Precision<sub>c</sub> = VP<sub>c</sub> / (VP<sub>c</sub> + FP<sub>c</sub>) &nbsp;|&nbsp; Recall<sub>c</sub> = VP<sub>c</sub> / (VP<sub>c</sub> + FN<sub>c</sub>)<br>Macro-F1 (%) = (1 / C) &times; &Sigma;<sub>c=1..C</sub> [ 2 &middot; Precision<sub>c</sub> &middot; Recall<sub>c</sub> / (Precision<sub>c</sub> + Recall<sub>c</sub>) ] &times; 100</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> É a métrica clínica mais severa e fiel: pune igualmente <strong>falsos acionamentos</strong> (prótese fechar sem querer = baixa Precisão) e <strong>falhas de resposta</strong> (não acionar quando o usuário tenta = baixa Revocação).</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> No silício físico, <strong>M07 Cascata</strong> vence em 3 dos 4 datasets: Ozdemir (<strong>78,03%</strong>), NinaPro DB2 (<strong>59,11%</strong>) e DB3 Amputados (<strong>35,73%</strong>); <strong>M02 CNN-1D</strong> vence no Khushaba (<strong>77,22%</strong>). Na simulação (DB2 S4), <strong>M14</strong> faz 65,81% (K=5) / 69,34% (K=9).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Mostra que <code>M07</code> distribui melhor os acertos entre os 50 gestos do que <code>M09</code>, e expõe o alerta clínico do DB3 (49,47% Top-1 vs. apenas 35,15% Macro-F1 &mdash; fosso de 14,32 pp).</div>
+          </article>
+
+          <!-- Métrica 4: Delta de Acurácia -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">4. Variação de Acurácia (<code>&Delta; vs. Float32</code> e <code>+&Delta; pp</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Diferença Absoluta em Pontos Percentuais (<code>pp</code>) frente à referência em ponto flutuante 32 bits ou ao modelo sem voto (<code>K=1</code>).</span>
+            </div>
+            <div class="metric-eq-box">&Delta;<sub>quant</sub> = Acc(precisão) &minus; Acc(float32) [pp]<br>+&Delta;<sub>smooth</sub>(K) = Acc(K) &minus; Acc(K=1) [pp]</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Isola exatamente quanto se perde ao comprimir os dados do sensor (quantização) ou quanto se ganha ao suavizar predições no tempo.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> Resiliência em <code>int8</code>: <strong>M13 SupCon</strong> perde apenas <strong>&minus;0,08 pp</strong> (59,27% &rarr; 59,19%) vs. colapso da <strong>M02 CNN-1D</strong> (<strong>&minus;48,76 pp</strong>). Ganho com suavização: <strong>M14 Soft Voting</strong> ganha <strong>+5,53 pp</strong> (K=5) e <strong>+8,00 pp</strong> (K=9).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Fundamenta a <em>Lei da Invariância em 16 bits</em> (<code>&Delta; &approx; 0 pp</code> em <code>int16</code>) e prova que redes convolucionais comuns precisam de treinamento contrastivo (SupCon) para operar sob ADCs de 8 bits.</div>
+          </article>
+
+          <!-- Métrica 5: Latência Core 1 -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">5. Latência no Core 1 (<code>Latência Core 1</code> / <code>CCOUNT</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Tempo de Inferência no Núcleo 1 (<em>APP_CPU</em> @ 240 MHz) em microssegundos (<code>&mu;s</code>) ou milissegundos (<code>ms</code>); <code>CCOUNT</code> = <em>Cycle Count</em> (Contador de Ciclos de Clock).</span>
+            </div>
+            <div class="metric-eq-box">t<sub>silício</sub> = t<sub>fim</sub> &minus; t<sub>início</sub> (esp_timer_get_time, em &mu;s)<br>t<sub>QEMU</sub> = (CCOUNT<sub>fim</sub> &minus; CCOUNT<sub>início</sub>) / 240.000.000 Hz</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Mede quão rápido o ESP32-S3 consegue transformar uma janela de sinal muscular pronta em uma decisão de gesto.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico):</strong> <strong>M01 Micro-LDA Q7</strong> é imbatível em todos os 4 datasets: <strong>178,93 &mu;s</strong> (Khushaba), <strong>341,05 &mu;s</strong> (Ozdemir), <strong>1.049,62 &mu;s</strong> (DB3) e <strong>1.051,83 &mu;s</strong> (DB2). Pior caso: <strong>M03 DTW O(N&sup2;)</strong> com <strong>49,96 ms</strong> em 12CH.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Prova que tanto o LDA (&le;1,05 ms) quanto a CNN-1D (&le;14,15 ms) respondem em uma fração mínima do limite humano (200&ndash;300 ms), enquanto o DTW quadrático clássico satura o tempo real em 12 canais.</div>
+          </article>
+
+          <!-- Métrica 6: Percentil 99 (p99) -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">6. Percentil 99 de Latência (<code>p99</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>99th Percentile Latency</em> = Limite de Latência abaixo do qual estão 99% de todas as inferências (mede o pior caso típico / <em>jitter</em>).</span>
+            </div>
+            <div class="metric-eq-box">p99 = t<sub>(&lceil;0,99 &times; N&rceil;)</sub> &nbsp; para tempos ordenados t<sub>(1)</sub> &le; t<sub>(2)</sub> &le; ... &le; t<sub>(N)</sub></div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Em tempo real crítico, a média pode esconder travamentos raros. O <code>p99</code> verifica se o firmware mantém tempo constante sem picos imprevisíveis do FreeRTOS.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico, Ozdemir 187.200 inf.):</strong> <strong>M01 Micro-LDA Q7</strong>: p99 = <strong>347,55 &mu;s</strong> (média 330,22 &mu;s); <strong>M02 CNN-1D INT8</strong>: p99 = <strong>6.610,04 &mu;s</strong> (média 6.575,07 &mu;s, variação &lt;1%). Em 12CH: M01 = 1.075 &mu;s, M02 = 14.254 &mu;s.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> A quase igualdade entre média e <code>p99</code> comprova determinismo rígido em C99 estático (zero <code>malloc</code>, zero fragmentação de memória).</div>
+          </article>
+
+          <!-- Métrica 7: Latência Algorítmica -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">7. Latência Algorítmica / Execução de Gesto (<code>Vote-K</code>, Janela <em>W</em>, Stride <em>S</em>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Atraso causal da suavização por Voto Majoritário (<em>Majority Voting</em>) ou <em>Soft Voting</em> somado ao tempo de inferência para estabilizar o comando da prótese.</span>
+            </div>
+            <div class="metric-eq-box">t<sub>algorítmico</sub>(K) = (K &minus; 1) &times; S &nbsp; (com S = 50 ms)<br>t<sub>total_comando</sub> = (K &minus; 1) &times; 50 ms + t<sub>Core1</sub> + t<sub>voto</sub> (&lt; 0,5 &mu;s)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Indica o atraso real percebido pelo paciente entre contrair o músculo e a prótese executar o gesto com segurança (sem trepidação).</p>
+            <div class="metric-leader-box"><strong>Configurações em destaque:</strong> <strong>K=3</strong> (padrão do firmware: +100 ms &rarr; <strong>~100,3 ms</strong> LDA / <strong>~106,6 ms</strong> CNN) para controle ágil; <strong>K=5</strong> (+200 ms &rarr; <strong>~200,3&ndash;207,6 ms</strong>) no ótimo clínico. <strong>K=9</strong> (+400 ms) viola o limite de 300 ms.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Mostra que o gargalo perceptivo da prótese é a escolha do filtro temporal <em>K</em>, e não a velocidade da CPU do ESP32-S3.</div>
+          </article>
+
+          <!-- Métrica 8: Orçamento de Tempo Real / Duty Cycle -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">8. Orçamento de Tempo Real / Ciclo de Trabalho (<code>CPU Budget %</code> / <code>Duty Cycle</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Percentual do intervalo de chegada de novas janelas (<code>50 ms</code> = 20 Hz) que o Core 1 fica ocupado executando a IA.</span>
+            </div>
+            <div class="metric-eq-box">CPU Budget (%) = (t<sub>Core1</sub> / 50,0 ms) &times; 100<br>Tempo Livre p/ Light Sleep (%) = 100% &minus; CPU Budget (%)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Se ultrapassar <strong>100%</strong>, a fila de janelas enche e o sistema perde amostras em tempo real (<em>deadline miss</em>). Quanto menor, mais tempo o chip dorme economizando bateria.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico):</strong> <strong>M01 Micro-LDA</strong> usa apenas <strong>0,36%</strong> (2CH), <strong>0,68%</strong> (4CH) e <strong>2,10%</strong> (12CH). <strong>M02 CNN-1D</strong> usa <strong>11,8%&ndash;28,3%</strong>. <strong>M03 DTW O(N&sup2;)</strong> chega a perigosos <strong>99,92%</strong> em 12CH.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Garante margem operacional de 71% a 99% de CPU livre em todas as arquiteturas recomendadas, comprovando 0 <em>deadline misses</em>.</div>
+          </article>
+
+          <!-- Métrica 9: Energia por Inferência -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">9. Energia por Inferência (<code>Energia / Inf.</code> em <code>mJ</code> / <code>&mu;J</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Energia elétrica consumida por janela classificada em milijoules (<code>mJ</code>) ou microjoules (<code>&mu;J</code>), dada a potência ativa de <code>148,5 mW</code> (miliwatts).</span>
+            </div>
+            <div class="metric-eq-box">E<sub>inf</sub> (mJ) = P<sub>ativa</sub> (mW) &times; [ t<sub>Core1</sub> (ms) / 1000 ] = 148,5 &times; t<sub>Core1</sub> (s)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Traduz o tempo de CPU diretamente em impacto na bateria LiPo da prótese e na dissipação térmica dentro do encaixe do antebraço.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico):</strong> <strong>M01 Micro-LDA Q7</strong> consome apenas <strong>0,0266 mJ</strong> (2CH), <strong>0,0506 mJ</strong> (4CH) e <strong>0,1562 mJ</strong> (12CH) &mdash; até <strong>33&times; menos</strong> que M02 CNN-1D (0,88&ndash;2,10 mJ) e <strong>47&times; menos</strong> que M03 (7,42 mJ).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> O Micro-LDA maximiza autonomia de bateria de dia inteiro; porém note que essa métrica é analítica (<code>148,5 mW &times; t</code>), não medida diretamente com amperímetro físico (veja Ameaças à Validade).</div>
+          </article>
+
+          <!-- Métrica 10: Memória ROM / SRAM / Stack -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">10. Memória ROM/Flash, SRAM e <code>Stack High-Water Mark</code></span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Read-Only Memory</em> (Flash p/ código <code>.text</code> + pesos <code>.rodata</code>), <em>Static RAM</em> (memória de trabalho + Arena de tensores, limite 512 KB) e Margem Mínima Livre da Pilha FreeRTOS (<code>C0/C1</code>).</span>
+            </div>
+            <div class="metric-eq-box">ROM = bytes(.text) + bytes(.rodata)<br>SRAM = bytes(.data) + bytes(.bss) + Arena<sub>ativações</sub> &le; 512 KB</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Verifica se o modelo cabe integralmente no ESP32-S3 sem chip externo de PSRAM e sem risco de <em>stack overflow</em> em operação contínua.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> <strong>M01 Micro-LDA Q7</strong> precisa de apenas <strong>100 B&ndash;3.000 B</strong> de pesos e <strong>0 B</strong> de arena extra (3,46&ndash;22,20 KB SRAM total, 100% no Cache L1 de 32 KB). <strong>M14</strong> usa só <strong>7,62 KB SRAM</strong> (vs. 30,9 KB na CNN-2D). Pilha livre física: &ge;2.272 B (C0) / &ge;3.268 B (C1).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Todos os 14 modelos cabem com folga nos 512 KB de SRAM do ESP32-S3, permitindo até coexistência de múltiplos motores no mesmo firmware.</div>
+          </article>
+
+          <!-- Métrica 11: Largura de Banda e FoM -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">11. Largura de Banda (<code>kB/s</code>) e Figura de Mérito (<code>FoM</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Bandwidth</em> = Taxa de Dados do ADC em kilobytes/segundo; <em>Figure of Merit</em> = Acurácia obtida por byte de amostra adquirida.</span>
+            </div>
+            <div class="metric-eq-box">Taxa (kB/s) = (C<sub>canais</sub> &times; B<sub>precisão</sub> &times; F<sub>s</sub>) / 1000<br>FoM = Acurácia Top-1 (%) / (C<sub>canais</sub> &times; B<sub>precisão</sub>)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Guia o projeto eletrônico do sensor (ADC, DMA e rádio BLE) ao medir quanta acurácia cada byte transmitido por amostra realmente entrega.</p>
+            <div class="metric-leader-box"><strong>Configurações em destaque:</strong> No Ozdemir, <strong><code>int16</code> @ 4CH</strong> (16,0 kB/s, &minus;50% banda, 77,51%, <code>FoM = 9,69</code>) tem perda zero vs. <code>float32</code>; e <strong><code>int8</code> @ 4CH</strong> (8,0 kB/s, 70,31%) vence <code>float32</code> @ 2CH (16,0 kB/s, 59,87%) com metade da banda.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Estabelece a diretriz de hardware: priorize <strong>mais eletrodos com 16 ou 8 bits</strong> em vez de poucos eletrodos em 32 bits.</div>
+          </article>
+
+          <!-- Métrica 12: Paridade Bit-Exata -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">12. Paridade HW Bit-Exata (<code>host_parity_ratio</code> / <code>max_logit_diff</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Concordância Numérica de 100% entre o PC Oráculo e o ESP32-S3 Físico (%) e Diferença Máxima Absoluta nos <em>Logits</em> (pontuações de saída).</span>
+            </div>
+            <div class="metric-eq-box">Paridade (%) = (1 / N) &times; &Sigma;<sub>i=1..N</sub> I(&ycirc;<sub>i</sub><sup>ESP32</sup> = &ycirc;<sub>i</sub><sup>Host</sup>) &times; 100<br>max_logit_diff = max<sub>i,c</sub> | z<sub>i,c</sub><sup>ESP32</sup> &minus; z<sub>i,c</sub><sup>Host</sup> |</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Audita se a portagem do algoritmo para C99 quantizado no microcontrolador sofreu algum bug numérico, <em>overflow</em> inteiro ou erro de arredondamento.</p>
+            <div class="metric-leader-box"><strong>Resultado obtido:</strong> <strong>100,00% de paridade bit-exata</strong> nas 100.630 inferências do benchmark populacional de 10 modelos (101 sujeitos) e nas 187.200 inferências contínuas do Ozdemir (todos os modelos empatados no topo).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Garante que os resultados publicados refletem fielmente o comportamento aritmético do chip físico sem discrepâncias ocultas de implementação.</div>
+          </article>
+
+          <!-- Métrica 13: IRC -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">13. IRC &mdash; Índice de Responsividade Computacional</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Index of Responsive Classification</em> = Repertório gestual acurado decodificado por milissegundo de CPU.</span>
+            </div>
+            <div class="metric-eq-box">IRC = (Acurácia Top-1 [%] &times; N<sub>gestos</sub>) / Latência<sub>Core1</sub> (ms)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Unifica precisão, dificuldade do vocabulário (10 vs. 50 gestos) e velocidade de resposta em uma única escala comparável.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico):</strong> <strong>M01 Micro-LDA Q7</strong> domina todos os datasets: <strong>3.940,65</strong> (Khushaba), <strong>2.592,62</strong> (DB2), <strong>2.252,46</strong> (Ozdemir) e <strong>1.604,39</strong> (DB3) &mdash; contra 99,85&ndash;235,18 da CNN-1D.</div>
+            <div class="metric-interp-box"><strong>Interpretação e ressalva crítica:</strong> Mostra a superioridade de velocidade do LDA, mas <strong>atenção</strong>: sem um piso mínimo de acurácia, o IRC pode premiar modelos rápidos porém imprecisos (como 33,68% no DB3).</div>
+          </article>
+
+          <!-- Métrica 14: IEE -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">14. IEE &mdash; Índice de Eficiência Embarcada</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Index of Embedded Efficiency</em> = Eficiência holística combinando acurácia, gestos, energia elétrica e pegada de SRAM.</span>
+            </div>
+            <div class="metric-eq-box">IEE = (Acurácia Top-1 [%] &times; N<sub>gestos</sub>) / [ E<sub>inf</sub> (mJ) &times; log<sub>10</sub>(SRAM<sub>KB</sub>) ]</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Avalia o compromisso global de TinyML (bateria + memória limitada de 512 KB + desempenho preditivo). O <code>log<sub>10</sub></code> suaviza diferenças triviais de memória.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque (Silício físico):</strong> <strong>M01 Micro-LDA Q7</strong> lidera por 1 ordem de grandeza: <strong>49.225,6</strong> (Khushaba), <strong>18.507,9</strong> (Ozdemir), <strong>12.967,4</strong> (DB2) e <strong>8.024,6</strong> (DB3) vs. 640,6&ndash;1.108,8 da CNN-1D.</div>
+            <div class="metric-interp-box"><strong>Interpretação e ressalva crítica:</strong> Excelente para selecionar modelos em próteses de baixíssimo consumo (2&ndash;4CH), mas herda do IRC o risco de supervalorizar eficiência quando a acurácia clínica cai abaixo de 50%.</div>
+          </article>
+
+          <!-- Métrica 15: Taxa de Saída Antecipada (EE) -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">15. Taxa de Saída Antecipada (<code>EE %</code>)</span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> <em>Early-Exit Rate</em> = Percentual de janelas resolvidas no estágio rápido (LDA) sem precisar acordar a rede neural pesada (CNN).</span>
+            </div>
+            <div class="metric-eq-box">EE (%) = [ N<sub>confiança(LDA) &ge; &tau;</sub> / N<sub>total</sub> ] &times; 100</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Mede se as arquiteturas em cascata (<code>M07</code>, <code>M10</code>, <code>M11</code>) estão realmente economizando latência e bateria nos gestos fáceis.</p>
+            <div class="metric-leader-box"><strong>Modelos em destaque:</strong> No Ozdemir 4CH, <strong>M07 Cascata</strong> corta a latência física da CNN em <strong>56%</strong> (7,55 &rarr; 3,31 ms) mantendo acurácia líder (77,87%). Já em 50 classes (DB2/DB3 <code>S4/S11</code>), <strong>EE caiu para 0,0%</strong> sob limiar fixo <code>&tau;</code>.</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Prova que cascatas são altamente eficazes em 10 classes, mas exigem calibração adaptativa de <code>&tau;</code> em vocabulários densos (50 classes) para não perderem a economia de CPU.</div>
+          </article>
+
+          <!-- Métrica 16: Features de Hudgins & DSP -->
+          <article class="metric-guide-card">
+            <div class="metric-guide-header">
+              <span class="metric-guide-title">16. Descritores de Hudgins (<code>MAV</code>, <code>RMS</code>, <code>WL</code>, <code>ZC</code>, <code>SSC</code>) &amp; <code>F<sub>s</sub></code></span>
+              <span class="metric-guide-translation"><strong>Por extenso / Tradução:</strong> Valor Absoluto Médio, Valor Quadrático Médio, Comprimento da Forma de Onda, Cruzamentos por Zero, Mudanças de Inclinação e Taxa de Amostragem (Hz).</span>
+            </div>
+            <div class="metric-eq-box">MAV = (1/W)&Sigma;|x<sub>n</sub>| &nbsp;|&nbsp; RMS = &radic;[(1/W)&Sigma;x<sub>n</sub>&sup2;] &nbsp;|&nbsp; WL = &Sigma;|x<sub>n</sub>&minus;x<sub>n&minus;1</sub>|<br>ZC = &Sigma; I(x<sub>n</sub>x<sub>n+1</sub>&lt;0 &and; |x<sub>n</sub>&minus;x<sub>n+1</sub>|&ge;&varepsilon;) &nbsp;|&nbsp; SSC = &Sigma; I((x<sub>n</sub>&minus;x<sub>n&minus;1</sub>)(x<sub>n</sub>&minus;x<sub>n+1</sub>)&ge;&varepsilon;)</div>
+            <p class="card-text"><strong>Como contribui e o que quer dizer:</strong> Comprimem 400 amostras ruidosas por canal em apenas 5 números físicos (força, potência, complexidade e frequência aproximada) usando aritmética inteira Zero-FPU (ganho de 2,5&times; a 3,9&times; em ciclos).</p>
+            <div class="metric-leader-box"><strong>Modelos que mais se beneficiam:</strong> <strong>M01 Micro-LDA Q7</strong> (usa apenas esses 5 descritores/canal) e <strong>M14</strong> (expande-os com espectro, coeficientes AR e 132 sinergias espaciais para 636D).</div>
+            <div class="metric-interp-box"><strong>Interpretação para o projeto:</strong> Mostra por que engenharia de features clássica ainda rivaliza com Deep Learning em poucos canais e custa frações de microssegundo no ESP32-S3.</div>
+          </article>
+        </div>
+
+        <!-- 6.2.2 Modelos e Datasets Dominantes em Múltiplas Áreas & Ameaças que Podem Anular Esse Destaque -->
+        <h3 class="subsection-heading">6.2.2 Modelos e Datasets Dominantes em Múltiplas Áreas: Por Que Se Sobressaem e o Que Pode "Anular" Esse Destaque</h3>
+
+        <div class="grid-2" style="margin-bottom:1.75rem;">
+          <article class="dominance-card">
+            <span class="badge badge-linear" style="align-self:flex-start;">Dominante em Eficiência (7 Métricas &times; 4 Datasets)</span>
+            <h4 class="card-title" style="margin:0;"><code>M01_micro_lda_q7</code> (Micro-LDA Quantizado em Q7)</h4>
+            <p class="card-text"><strong>Por que domina quase tudo em recursos:</strong> Não executa convoluções nem guarda mapas de ativação. Faz apenas 5 estatísticas inteiras (Zero-FPU) e um produto escalar <code>int8</code> (<code>100 B &ndash; 3 KB</code>) que reside 100% no Cache L1 de 32 KB do ESP32-S3, liderando Latência, p99, CPU Budget, Energia, ROM, SRAM, IRC e IEE nos 4 datasets (além de vencer a CNN-1D no Ozdemir 4CH).</p>
+            <div class="threat-box">
+              <strong>Ameaças à validade que podem ANULAR esse destaque:</strong>
+              <ul>
+                <li><strong>Distorção algébrica do IRC e IEE sem piso de acurácia:</strong> No NinaPro DB3 (amputados), o LDA lidera IRC (<code>1.604</code>) e IEE (<code>8.025</code>) acertando apenas <strong>33,68%</strong> &mdash; resultado clinicamente inútil (&lt;50%). Responder em 1 ms errando 2 de cada 3 gestos anula o valor prático do índice.</li>
+                <li><strong>Limite linear em alta complexidade:</strong> Perde por &minus;12,01 pp (DB2) e &minus;15,62 pp (DB3) para a CNN-1D quando há 12 canais, 50 gestos e <em>crosstalk</em>/atrofia muscular.</li>
+                <li><strong>Dependência de calibração individual:</strong> Sem <code>SEW1</code> (pesos fixos de S1), cai de 81,20% para 42,10% na população.</li>
+                <li><strong>Comparação contra CNN escalar sem SIMD PIE:</strong> Se a CNN-1D usar instruções vetoriais <code>esp-dsp</code> do LX7, a vantagem de velocidade de 13&times;&ndash;33&times; do LDA encolhe drasticamente.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="dominance-card">
+            <span class="badge badge-hybrid" style="align-self:flex-start;">Dominantes em Acurácia no Silício Físico</span>
+            <h4 class="card-title" style="margin:0;"><code>M07</code> (Cascata Early-Exit) &amp; <code>M09</code> (DTW + CNN-1D)</h4>
+            <p class="card-text"><strong>Por que dominam a acurácia no chip real:</strong> <code>M09</code> lidera Top-1 físico em 12CH (67,66% DB2; 49,47% DB3) e <code>M07</code> lidera Top-1 no Ozdemir (77,87%) e <strong>Macro-F1 em 3 de 4 datasets</strong> (78,03% Ozdemir; 59,11% DB2; 35,73% DB3), unindo extração espacial não-linear da CNN com alinhamento elástico (DTW) ou filtragem rápida (LDA).</p>
+            <div class="threat-box">
+              <strong>Ameaças à validade que podem ANULAR esse destaque:</strong>
+              <ul>
+                <li><strong>Early-Exit zerado em 50 classes:</strong> Sem calibração dinâmica de <code>&tau;</code>, o <code>M07</code> teve <code>EE = 0,0%</code> em DB2/DB3 (S4/S11), pagando o custo de LDA + CNN sem economia real de latência.</li>
+                <li><strong>Fosso Top-1 vs. Macro-F1 em amputados:</strong> Os 49,47% Top-1 do <code>M09</code> no DB3 correspondem a apenas 35,15% Macro-F1 (&minus;14,32 pp), indicando desequilíbrio entre classes fáceis e gestos delicados.</li>
+                <li><strong>Subamostragem estratificada física:</strong> O benchmark físico de 10 modelos avaliou 100 janelas/sujeito (por limite de ~2h na porta serial), diferente das 2.340 janelas/sujeito testadas no benchmark exclusivo de Ozdemir.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="dominance-card">
+            <span class="badge badge-m14" style="align-self:flex-start;">Dominante em Acurácia Geral (Simulação C99)</span>
+            <h4 class="card-title" style="margin:0;"><code>M14</code> (636 Features Multi-Domínio + SupCon MLP INT8)</h4>
+            <p class="card-text"><strong>Por que domina a acurácia máxima:</strong> Combina 636 descritores (tempo, espectro, coeficientes AR e 132 sinergias espaciais), perda contrastiva supervisionada (<em>SupCon</em>) e <em>Soft Voting</em>, alcançando <strong>68,59% (K=5) / 71,06% (K=9)</strong> no NinaPro DB2 S4 e <strong>76,36% médios</strong> (pico 84,10%) no Ozdemir 2CH com apenas 7,62 KB de SRAM.</p>
+            <div class="threat-box">
+              <strong>Ameaças à validade que podem ANULAR esse destaque:</strong>
+              <ul>
+                <li><strong>Ainda NÃO executado no silício físico ESP32-S3:</strong> Assim como <code>M11&ndash;M13</code>, sua latência (<code>0,425 ms</code>) é estimativa de ciclos/simulação C99; o custo real de extrair 636 features (FFT + AR + 132 sinergias) com stalls de Flash SPI e FreeRTOS no chip físico ainda precisa ser medido.</li>
+                <li><strong>O recorde de 71,06% viola o limite clínico de 300 ms:</strong> Usa <code>K=9</code> (400 ms de atraso algorítmico). Sem voto (<code>K=1</code>, INT8), a acurácia instantânea cai para 63,06%.</li>
+                <li><strong>Validação em apenas 1 sujeito (S4) no NinaPro DB2:</strong> Não foi testado nos 40 sujeitos do DB2 nem nos 11 amputados do DB3 (apenas no Ozdemir 2CH houve validação nos 40 sujeitos).</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="dominance-card">
+            <span class="badge badge-success" style="align-self:flex-start;">Datasets com Melhores Números Gerais</span>
+            <h4 class="card-title" style="margin:0;">Ozdemir (4CH, 10 Classes) &amp; Khushaba (2CH, 10 Classes)</h4>
+            <p class="card-text"><strong>Por que exibem as maiores notas:</strong> Acurácias de 76&ndash;78%, baixo desvio padrão (4,4&ndash;6,1%), latências mínimas (0,18&ndash;0,34 ms) e IRC/IEE altíssimos graças a apenas 10 gestos bem distintos realizados por voluntários jovens e saudáveis.</p>
+            <div class="threat-box">
+              <strong>Ameaças à validade que impedem extrapolar esses números:</strong>
+              <ul>
+                <li><strong>Ambiente limpo de laboratório:</strong> Contrações isométricas controladas sem carga mecânica, sem suor/fadiga prolongada e sem ruído de motores elétricos da prótese.</li>
+                <li><strong>Pré-filtragem pronta no Ozdemir:</strong> O dataset já veio filtrado (20&ndash;450 Hz + Notch 50 Hz) pelos autores, removendo interferências severas encontradas em eletrodos de uso diário.</li>
+                <li><strong>Baixo N amostral no Khushaba:</strong> Apenas 10 sujeitos saudáveis (baixa potência estatística) e amostragem a 4.000 Hz (o dobro da banda de aquisição do padrão 2.000 Hz).</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <!-- 6.2.3 Guia de Leitura de Todas as Tabelas e Gráficos -->
+        <h3 class="subsection-heading">6.2.3 Mapa de Leitura: O Que Você Está Vendo em Cada Tabela e Gráfico do Site</h3>
+        <div class="table-wrapper" style="margin-bottom:1.75rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Seção / Elemento Visual</th>
+                <th>O Que o Leitor Está Vendo</th>
+                <th>Principal Conclusão Prática</th>
+                <th>Cuidado na Interpretação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Seção 1</strong> &mdash; Gráfico &amp; Tabela Hero Física</td>
+                <td>Comparação direta no ESP32-S3 físico entre <code>Micro-LDA Q7</code> e <code>CNN-1D INT8</code> nos 4 datasets (configuração ótima <code>int16</code>).</td>
+                <td>LDA vence por 10&times;&ndash;50&times; em IRC/IEE; CNN-1D vence em acurácia nos cenários difíceis (Khushaba, DB2, DB3).</td>
+                <td>Não olhar IRC/IEE isolado no DB3, onde o LDA tem apenas 33,68% de acurácia.</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 2.6</strong> &mdash; Quadro Sinótico DSP</td>
+                <td>Qual filtro analógico e digital foi aplicado (ou omitido) em cada um dos 4 datasets.</td>
+                <td>Evita dupla filtragem no Ozdemir e suprime ruído de coto residual/rede 50 Hz no NinaPro.</td>
+                <td>A diferença de sinal bruto vs. pré-filtrado influencia diretamente a comparação entre datasets.</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 5</strong> &mdash; Gráfico Principal (10 Modelos Físicos)</td>
+                <td>Acurácia Top-1 vs. Latência real no Core 1 (log) de <code>M01&ndash;M10</code> nos 101 sujeitos físicos.</td>
+                <td>Expõe o espectro completo: <code>M01</code> (mais rápido), <code>M07</code>/<code>M09</code> (mais acurados), <code>M03</code> (inviável em 12CH).</td>
+                <td>Validação física populacional de 100 janelas estratificadas/sujeito (100% paridade bit-exata).</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 5</strong> &mdash; Gráficos 1 a 8 (14 Arquiteturas, Pareto, Energia, Quantização, IRC/IEE, Smoothing)</td>
+                <td>Evolução completa de <code>M01&ndash;M14</code> (incluindo Passos 1&ndash;4 em simulação C99/QEMU), colapso em <code>int8</code> e ganho do voto <em>K</em>.</td>
+                <td>Mostra fronteira de Pareto (<code>M01</code>, <code>M11</code>, <code>M14</code>), blindagem <em>SupCon</em> em 8 bits e ganho gratuito de +5,5 pp em <code>K=5</code>.</td>
+                <td><strong>Não misturar escalas:</strong> IRC/IEE e latências dos Gráficos 2, 3, 5 e 6 são de QEMU/simulação (microssegundos), diferentes do silício físico da Seção 1!</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 5</strong> &mdash; Gráficos 9 a 12 (QEMU vs. Silício, Orçamento 50 ms, S1&ndash;S40, Transferência)</td>
+                <td>Stress test contínuo de 187.200 inferências reais em Flash (40 sujeitos Ozdemir) vs. emulador QEMU.</td>
+                <td>Prova 0 <em>deadline misses</em>, jitter &lt;1% e justifica o protocolo <code>SEW1</code> (queda de 81% &rarr; 42% sem recalibração).</td>
+                <td>Pesos estáticos de S1 subestimam a acurácia personalizada (que sobe para ~77% com <code>SEW1</code>).</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 6</strong> &mdash; Tabelas Hierárquicas (Modelos &gt; Canais &gt; Quantização)</td>
+                <td>Auditoria granular das 14 arquiteturas descendo por número de canais (12 &rarr; 1CH) e precisão (<code>float32</code> &rarr; <code>int8</code>).</td>
+                <td>Permite verificar exatamente onde cada modelo quebra sob corte de eletrodos ou redução de bits.</td>
+                <td>Verifique o selo de ambiente de cada tabela (Silício Físico vs. QEMU/Simulação C99).</td>
+              </tr>
+              <tr>
+                <td><strong>Seção 6.1</strong> &mdash; Tabelas de Latências &amp; Vote-K</td>
+                <td>Latência média de <code>M01&ndash;M10</code> nos 4 datasets + latência fim-a-fim com voto majoritário (<code>K=1..9</code>).</td>
+                <td>Confirma que nenhum modelo passa de 300 ms em inferência pura (máximo real: 49,96 ms) e que <code>K=3/5</code> mantêm resposta clínica.</td>
+                <td>Não inclui tempo mecânico de motores/servos físicos da prótese (não acoplados).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 6.2.4 Valor do Trabalho vs. Pontos Negativos & Ameaças à Validade -->
+        <h3 class="subsection-heading">6.2.4 Balanço Crítico: Por Que Nosso Trabalho Tem Valor vs. O Que Pode Comprometer Sua Validade</h3>
+        <div class="grid-2">
+          <article class="value-card">
+            <span class="badge badge-success" style="margin-bottom:0.5rem;">Contribuições Reais</span>
+            <h4 class="card-title" style="margin-top:0;">Por Que Este Trabalho Tem Valor Científico e Prático?</h4>
+            <ul class="card-list">
+              <li><strong>Prova real em silício de ~US$ 3 (não apenas GPU):</strong> <strong>287.830 inferências físicas</strong> somadas no <code>ESP32-S3-WROOM-1</code> (100.630 nos 10 modelos &times; 101 sujeitos + 187.200 no stress test contínuo) com <strong>100,00% de paridade bit-exata</strong> e zero falhas de prazo sob FreeRTOS SMP.</li>
+              <li><strong>Rigor metodológico anti-vazamento:</strong> Rejeita o erro comum na literatura de dividir janelas sobrepostas aleatoriamente (que gera acurácias artificiais de 95&ndash;99%). Usa <code>LOTO</code> estrito, auditoria <code>PROVE-OR-QUARANTINE</code> (18 gravações corrigidas) e 361 testes automatizados (SDD/TDD).</li>
+              <li><strong>Regras acionáveis de co-design hardware-software:</strong> Comprova empiricamente a <em>Lei da Invariância em 16 bits</em> (&minus;50% banda sem perda), a superioridade de <em>4CH 8-bit sobre 2CH 32-bit</em> e o diagnóstico + cura (<em>SupCon</em>) do colapso de CNNs sob ADCs de 8 bits.</li>
+              <li><strong>Protocolo dinâmico <code>SEW1</code> em RAM:</strong> Solução prática de engenharia que permite recalibrar a prótese para cada paciente em &lt;0,2 s sem regravar a memória Flash (recuperando a média do Ozdemir de 42% para ~77%).</li>
+              <li><strong>Transparência com amputados reais (NinaPro DB3):</strong> Expõe sem maquiagem a queda severa em coto residual (&minus;17 a &minus;21 pp), contribuindo honestamente para o estado da arte em próteses biônicas acessíveis.</li>
+            </ul>
+          </article>
+
+          <article class="weakness-card">
+            <span class="badge badge-danger" style="margin-bottom:0.5rem;">Autocrítica &amp; Limitações</span>
+            <h4 class="card-title" style="margin-top:0;">Pontos Negativos &amp; Ameaças Que Podem Comprometer a Validade</h4>
+            <ul class="card-list">
+              <li><strong>Validade Externa &mdash; Sem teste online/malha fechada com humanos e atuadores:</strong> Todos os ensaios no silício foram <em>Hardware-in-the-Loop</em> reproduzindo gravações via USB-Serial, sem eletrodos ao vivo (AFE/ADC real), ruído de motores, suor, fadiga progressiva, deslocamento de eletrodos entre dias (<em>cross-day electrode shift</em>) ou feedback visual do usuário.</li>
+              <li><strong>Validade de Construto &mdash; Energia analítica, não medida eletricamente:</strong> O consumo (<code>mJ</code>) e o <code>IEE</code> usam potência fixa de datasheet (<code>148,5 mW &times; t</code>) sem medição física com osciloscópio/INA219/PPK2.</li>
+              <li><strong>Validade de Construto &mdash; Viés de IRC/IEE e desbalanceamento:</strong> IRC/IEE sem piso mínimo de acurácia premiam modelos rápidos mas imprecisos (33,68% no DB3), e a Top-1 no NinaPro mascara a queda na <code>Macro-F1</code> (&minus;14,32 pp no DB3).</li>
+              <li><strong>Validade Interna &mdash; Assimetria físico vs. simulado e ausência de SIMD PIE:</strong> <code>M11&ndash;M14</code> (incluindo o campeão <code>M14</code>) ainda não rodaram no ESP32-S3 físico nem nos 40 sujeitos do DB2; além disso, a CNN-1D física rodou em C99 escalar sem acelerador vetorial PIE (<code>esp-dsp</code>), desfavorecendo-a em latência.</li>
+              <li><strong>Validade de Conclusão &mdash; Limite clínico em amputados e <code>K=9</code>:</strong> A amostra de amputados é pequena e heterogênea (<code>N = 11</code>, 39&ndash;50 classes, DP &plusmn;13%), a acurácia em 50 gestos (~49,5% Top-1 / 35,7% Macro-F1) ainda é insuficiente para uso comercial seguro (exigindo redução para 6&ndash;10 AVDs), e o pico de 71,06% do <code>M14</code> usa <code>K=9</code> (400 ms &gt; limite de 300 ms).</li>
+            </ul>
+          </article>
+        </div>
       </div>
     </section>
 
